@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>Encom Sphere</title>
+        <link href="styles.css" rel="stylesheet" type="text/css" />
+        <script src="include/three.min.js"></script>
+        <script src="include/tween.min.js"></script>
+        <script src="include/pusher.color.js"></script>
+        <script src="encom-globe.js"></script>
+        <script src="http://code.jquery.com/jquery-2.0.3.min.js"></script>
+
+        <script>
+            var globe;
+
+            var globeOpts = {
+                font: "Inconsolata",
+
+            };
+
+            function animate(){
+                globe.tick();
+                requestAnimationFrame(animate);
+            }
+
+            function start(){
+                animate();
+
+                /* add markers at random locations */
+                setInterval(function(){
+                    
+                    var lat = Math.random() * 180 - 90,
+                       lng = Math.random() * 360 - 180,
+                       name = "Test " + Math.floor(Math.random() * 100);
+
+                    globe.addMarker(lat,lng, name);
+
+                }, 2000);
+                
+                /* add 6 satellites in random locations */
+                setTimeout(function(){
+                    for(var i = 0; i< 2; i++){
+                        for(var j = 0; j< 3; j++){
+                            globe.addSatellite(50 * i - 30 + 15 * Math.random(), 120 * j - 120 + 30 * i, 1.3 + Math.random()/10);
+                        }
+                    }
+                }, 4000);
+
+                /* add the connected points that are in the movie */
+                setTimeout(function(){
+                    globe.addConnectedPoints(49.25, -123.1, "Vancouver", 35.68, 129.69, "Tokyo");
+                }, 2000);
+
+            }
+
+            $(function() {
+
+                WebFontConfig = {
+                    google: {
+                          families: ['Inconsolata']
+                    },
+                    active: function(){
+                        /* don't start the globe until the font has been loaded */
+
+                        globe = new ENCOM.Globe({containerId: "container"});
+                        globe.init(start);
+                    }
+                };
+
+                /* web font stuff*/
+                var wf = document.createElement('script');
+                wf.src = ('https:' == document.location.protocol ? 'https' : 'http') +
+                    '://ajax.googleapis.com/ajax/libs/webfont/1.4.7/webfont.js';
+                wf.type = 'text/javascript';
+                wf.async = 'true';
+                var s = document.getElementsByTagName('script')[0];
+                s.parentNode.insertBefore(wf, s);
+
+            });
+        </script>
+
+    </head>
+    <body>
+        <div id="container">
+        </div>
+    <body>
+</html>
+
