@@ -1,6 +1,7 @@
 
-var ENCOM = (function(ENCOM, document){
-    /* encom fucntions */
+var ENCOM = (function(ENCOM, THREE, document){
+
+    var pixelData;
 
     var extend = function(first, second) {
         for(var i in first){
@@ -12,17 +13,6 @@ var ENCOM = (function(ENCOM, document){
         return 1/(1 + Math.exp(-t*12 + 6));
     };
 
-    // http://stackoverflow.com/a/13542669
-    var shadeColor = function(color, percent) {   
-        var num = parseInt(color.slice(1),16), 
-            amt = Math.round(2.55 * percent), 
-            R = (num >> 16) + amt, 
-            G = (num >> 8 & 0x00FF) + amt, 
-            B = (num & 0x0000FF) + amt;
-
-        return "#" + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 + (G<255?G<1?0:G:255)*0x100 + (B<255?B<1?0:B:255)).toString(16).slice(1);
-    }
-
     var renderToCanvas = function (width, height, renderFunction) {
         var buffer = document.createElement('canvas');
         buffer.width = width;
@@ -31,7 +21,7 @@ var ENCOM = (function(ENCOM, document){
         return buffer;
     };
 
-    // based on from http://stemkoski.github.io/Three.js/Texture-Animation.html
+    // based on http://stemkoski.github.io/Three.js/Texture-Animation.html
     var TextureAnimator = function(texture, tilesVert, tilesHoriz, numTiles, tileDispDuration, repeatAtTile) 
     {   
         var _this = this;
@@ -93,11 +83,10 @@ var ENCOM = (function(ENCOM, document){
 
     }   
 
-    /* globe */
 
     /* private globe function */
 
-    var globe_latLonToXY = function(width, height, lat,lon){
+    var latLonToXY = function(width, height, lat,lon){
 
         var x = Math.floor(width/2.0 + (width/360.0)*lon);
         var y = Math.floor(height - (height/2.0 + (height/180.0)*lat));
@@ -105,21 +94,21 @@ var ENCOM = (function(ENCOM, document){
         return {x: x, y:y};
     };
 
-    var globe_pixelData;
 
-    var globe_isPixelBlack = function(context, x, y, width, height){
-        if(globe_pixelData == undefined){
-            globe_pixelData = context.getImageData(0,0,width, height);
-        }
-        return globe_pixelData.data[(y * globe_pixelData.width + x) * 4] === 0;
-    };
 
-    var globe_samplePoints = function(projectionContext, width, height, latoffset, lonoffset, latinc, loninc, cb){
-        var points = [];
+    var samplePoints = function(projectionContext, width, height, latoffset, lonoffset, latinc, loninc, cb){
+        var points = [],
+            isPixelBlack = function(context, x, y, width, height){
+                if(pixelData == undefined){
+                    pixelData = context.getImageData(0,0,width, height);
+                }
+                return pixelData.data[(y * pixelData.width + x) * 4] === 0;
+            };
+
         for(var lat = 90-latoffset; lat > -90; lat -= latinc){
             for(var lon = -180+lonoffset; lon < 180; lon += loninc){
-                var point = globe_latLonToXY(width, height, lat, lon);
-                if(globe_isPixelBlack(projectionContext,point.x, point.y, width, height)){
+                var point = latLonToXY(width, height, lat, lon);
+                if(isPixelBlack(projectionContext,point.x, point.y, width, height)){
                     cb({lat: lat, lon: lon});
                     points.push({lat: lat, lon: lon});
                 }
@@ -128,7 +117,7 @@ var ENCOM = (function(ENCOM, document){
         return points;
     };
 
-    var globe_mapPoint = function(lat, lng, scale) {
+    var mapPoint = function(lat, lng, scale) {
        if(!scale){
            scale = 500;
        }
@@ -140,7 +129,7 @@ var ENCOM = (function(ENCOM, document){
        return {x: x, y: y, z:z};
      }
 
-    var globe_addPointAnimation = function(when, verticleIndex, position){
+    var addPointAnimation = function(when, verticleIndex, position){
         var pCount = this.globe_pointAnimations.length-1;
         while(pCount > 0 && this.globe_pointAnimations[pCount].when < when){
             pCount--;
@@ -148,7 +137,7 @@ var ENCOM = (function(ENCOM, document){
         this.globe_pointAnimations.splice(pCount+1,0, {when: when, verticleIndex: verticleIndex, position: position});
     };
 
-    var globe_runPointAnimations = function(){
+    var runPointAnimations = function(){
         var next;
         if(!this.firstRunTime){
             this.firstRunTime = Date.now();
@@ -171,10 +160,9 @@ var ENCOM = (function(ENCOM, document){
 
     };
 
-    var globe_createLabel = function(text, x, y, z, size, color, underlineColor) {
+    var createLabel = function(text, x, y, z, size, color, underlineColor) {
 
         var canvas = document.createElement("canvas");
-
         var context = canvas.getContext("2d");
         context.font = size + "pt Inconsolata";
 
@@ -237,163 +225,152 @@ var ENCOM = (function(ENCOM, document){
 
     }
 
-    var globe_createSatelliteCanvas = function(numFrames, pixels, rows, waveStart, numWaves) {
-
-        var canvas = document.createElement("canvas");
+    var createSatelliteCanvas = function(numFrames, pixels, rows, waveStart, numWaves) {
 
         var cols = numFrames / rows;
-
         var waveInterval = Math.floor((numFrames-waveStart)/numWaves);
-
         var waveDist = pixels - 25; // width - center of satellite
         var distPerFrame = waveDist / (numFrames-waveStart)
-
-        canvas.width=numFrames*pixels / rows;
-        canvas.height=pixels*rows;
-
-        var ctx=canvas.getContext("2d");
-
         var offsetx = 0,
             offsety = 0;
         var curRow = 0;
 
-        for(var i = 0; i< numFrames; i++){
-            if(i - curRow * cols >= cols){
-                offsetx = 0;
-                offsety += pixels;
-                curRow++;
-            }
+        return renderToCanvas(numFrames * pixels / rows, pixels * rows, function(ctx){
 
-            var centerx = offsetx + 25;
-            var centery = offsety + Math.floor(pixels/2);
-
-           /* white circle around red core */
-            // i have between 0 and wavestart to fade in
-            // i have between wavestart and  waveend - (time between waves*2) 
-            // to do a full spin close and then back open
-            // i have between waveend-2*(timebetween waves)/2 and waveend to rotate Math.PI/4 degrees
-            // this is probably the ugliest code in all of here -- basically I just messed arund with stuff until it looked ok
-           
-            ctx.lineWidth=2;
-            ctx.strokeStyle="#FFFFFF";
-            var buffer=Math.PI/16;
-            var start = -Math.PI + Math.PI/4;
-            var radius = 8;
-            var repeatAt = Math.floor(numFrames-2*(numFrames-waveStart)/numWaves)+1;
-
-            /* fade in and out */
-            if(i<waveStart){
-                radius = radius*i/waveStart;
-            }
-
-            var swirlDone = Math.floor((repeatAt-waveStart) / 2) + waveStart;
-
-            for(var n = 0; n < 4; n++){
-                ctx.beginPath();
-
-                if(i < waveStart || i>=numFrames){
-
-                    ctx.arc(centerx, centery, radius,n* Math.PI/2 + start+buffer, n*Math.PI/2 + start+Math.PI/2-2*buffer);
-
-                } else if(i > waveStart && i < swirlDone){
-                    var totalTimeToComplete = swirlDone - waveStart;
-                    var distToGo = 3*Math.PI/2;
-                    var currentStep = (i-waveStart);
-                    var movementPerStep = distToGo / totalTimeToComplete;
-
-                    var startAngle = -Math.PI + Math.PI/4 + buffer + movementPerStep*currentStep;
-
-                    ctx.arc(centerx, centery, radius,Math.max(n*Math.PI/2 + start,startAngle), Math.max(n*Math.PI/2 + start + Math.PI/2 - 2*buffer, startAngle +Math.PI/2 - 2*buffer));
-
-                } else if(i >= swirlDone && i< repeatAt){
-                    var totalTimeToComplete = repeatAt - swirlDone;
-                    var distToGo = n*2*Math.PI/4;
-                    var currentStep = (i-swirlDone);
-                    var movementPerStep = distToGo / totalTimeToComplete;
-                
-
-                    var startAngle = Math.PI/2 + Math.PI/4 + buffer + movementPerStep*currentStep;
-                    ctx.arc(centerx, centery, radius,startAngle, startAngle + Math.PI/2 - 2*buffer);
-
-                } else if(i >= repeatAt && i < (numFrames-repeatAt)/2 + repeatAt){
-
-                    var totalTimeToComplete = (numFrames-repeatAt)/2;
-                    var distToGo = Math.PI/2;
-                    var currentStep = (i-repeatAt);
-                    var movementPerStep = distToGo / totalTimeToComplete;
-                    var startAngle = n*(Math.PI/2)+ Math.PI/4 + buffer + movementPerStep*currentStep;
-
-                    ctx.arc(centerx, centery, radius,startAngle, startAngle + Math.PI/2 - 2*buffer);
-
-                } else{
-                    ctx.arc(centerx, centery, radius,n* Math.PI/2 + start+buffer, n*Math.PI/2 + start+Math.PI/2-2*buffer);
+            for(var i = 0; i< numFrames; i++){
+                if(i - curRow * cols >= cols){
+                    offsetx = 0;
+                    offsety += pixels;
+                    curRow++;
                 }
-                ctx.stroke();
-            }
 
-            // frame i'm on * distance per frame
+                var centerx = offsetx + 25;
+                var centery = offsety + Math.floor(pixels/2);
 
-            /* waves going out */
-            var frameOn;
+               /* white circle around red core */
+                // i have between 0 and wavestart to fade in
+                // i have between wavestart and  waveend - (time between waves*2) 
+                // to do a full spin close and then back open
+                // i have between waveend-2*(timebetween waves)/2 and waveend to rotate Math.PI/4 degrees
+                // this is probably the ugliest code in all of here -- basically I just messed arund with stuff until it looked ok
+               
+                ctx.lineWidth=2;
+                ctx.strokeStyle="#FFFFFF";
+                var buffer=Math.PI/16;
+                var start = -Math.PI + Math.PI/4;
+                var radius = 8;
+                var repeatAt = Math.floor(numFrames-2*(numFrames-waveStart)/numWaves)+1;
 
-            for(var wi = 0; wi<numWaves; wi++){
-                frameOn = i-(waveInterval*wi)-waveStart;
-                if(frameOn > 0 && frameOn * distPerFrame < pixels - 25){
-                    ctx.strokeStyle="rgba(255,255,255," + (.9-frameOn*distPerFrame/(pixels-25)) + ")";
-                    ctx.lineWidth=2;
+                /* fade in and out */
+                if(i<waveStart){
+                    radius = radius*i/waveStart;
+                }
+
+                var swirlDone = Math.floor((repeatAt-waveStart) / 2) + waveStart;
+
+                for(var n = 0; n < 4; n++){
                     ctx.beginPath();
-                    ctx.arc(centerx, centery, frameOn * distPerFrame, -Math.PI/12, Math.PI/12);
+
+                    if(i < waveStart || i>=numFrames){
+
+                        ctx.arc(centerx, centery, radius,n* Math.PI/2 + start+buffer, n*Math.PI/2 + start+Math.PI/2-2*buffer);
+
+                    } else if(i > waveStart && i < swirlDone){
+                        var totalTimeToComplete = swirlDone - waveStart;
+                        var distToGo = 3*Math.PI/2;
+                        var currentStep = (i-waveStart);
+                        var movementPerStep = distToGo / totalTimeToComplete;
+
+                        var startAngle = -Math.PI + Math.PI/4 + buffer + movementPerStep*currentStep;
+
+                        ctx.arc(centerx, centery, radius,Math.max(n*Math.PI/2 + start,startAngle), Math.max(n*Math.PI/2 + start + Math.PI/2 - 2*buffer, startAngle +Math.PI/2 - 2*buffer));
+
+                    } else if(i >= swirlDone && i< repeatAt){
+                        var totalTimeToComplete = repeatAt - swirlDone;
+                        var distToGo = n*2*Math.PI/4;
+                        var currentStep = (i-swirlDone);
+                        var movementPerStep = distToGo / totalTimeToComplete;
+                    
+
+                        var startAngle = Math.PI/2 + Math.PI/4 + buffer + movementPerStep*currentStep;
+                        ctx.arc(centerx, centery, radius,startAngle, startAngle + Math.PI/2 - 2*buffer);
+
+                    } else if(i >= repeatAt && i < (numFrames-repeatAt)/2 + repeatAt){
+
+                        var totalTimeToComplete = (numFrames-repeatAt)/2;
+                        var distToGo = Math.PI/2;
+                        var currentStep = (i-repeatAt);
+                        var movementPerStep = distToGo / totalTimeToComplete;
+                        var startAngle = n*(Math.PI/2)+ Math.PI/4 + buffer + movementPerStep*currentStep;
+
+                        ctx.arc(centerx, centery, radius,startAngle, startAngle + Math.PI/2 - 2*buffer);
+
+                    } else{
+                        ctx.arc(centerx, centery, radius,n* Math.PI/2 + start+buffer, n*Math.PI/2 + start+Math.PI/2-2*buffer);
+                    }
                     ctx.stroke();
                 }
-            }
-            /* red circle in middle */
 
-            ctx.fillStyle="#000";
-            ctx.beginPath();
-            ctx.arc(centerx,centery,3,0,2*Math.PI);
-            ctx.fill();
+                // frame i'm on * distance per frame
 
-            ctx.strokeStyle="#FF0000";
-            ctx.lineWidth=2;
-            ctx.beginPath();
-            if(i<waveStart){
-                ctx.arc(centerx,centery,3*i/waveStart,0,2*Math.PI);
-            } else {
+                /* waves going out */
+                var frameOn;
+
+                for(var wi = 0; wi<numWaves; wi++){
+                    frameOn = i-(waveInterval*wi)-waveStart;
+                    if(frameOn > 0 && frameOn * distPerFrame < pixels - 25){
+                        ctx.strokeStyle="rgba(255,255,255," + (.9-frameOn*distPerFrame/(pixels-25)) + ")";
+                        ctx.lineWidth=2;
+                        ctx.beginPath();
+                        ctx.arc(centerx, centery, frameOn * distPerFrame, -Math.PI/12, Math.PI/12);
+                        ctx.stroke();
+                    }
+                }
+                /* red circle in middle */
+
+                ctx.fillStyle="#000";
+                ctx.beginPath();
                 ctx.arc(centerx,centery,3,0,2*Math.PI);
+                ctx.fill();
+
+                ctx.strokeStyle="#FF0000";
+                ctx.lineWidth=2;
+                ctx.beginPath();
+                if(i<waveStart){
+                    ctx.arc(centerx,centery,3*i/waveStart,0,2*Math.PI);
+                } else {
+                    ctx.arc(centerx,centery,3,0,2*Math.PI);
+                }
+                ctx.stroke();
+
+                offsetx += pixels;
             }
-            ctx.stroke();
 
-            offsetx += pixels;
-        }
+        });
 
-        return canvas;
     };
 
-    var globe_createSpecialMarkerCanvas = function() {
+    var createSpecialMarkerCanvas = function() {
+        var markerWidth = 100,
+            markerHeight = 100;
 
-        var canvas = document.createElement("canvas");
+        return renderToCanvas(markerWidth, markerHeight, function(ctx){
+            ctx.strokeStyle="#FFCC00";
+            ctx.lineWidth=3;
+            ctx.beginPath();
+            ctx.arc(markerWidth/2, markerHeight/2, markerWidth/3+10, 0, 2* Math.PI);
+            ctx.stroke();
 
-        canvas.width=100;
-        canvas.height=100;
+            ctx.fillStyle="#FFCC00";
+            ctx.beginPath();
+            ctx.arc(markerWidth/2, markerHeight/2, markerWidth/4, 0, 2* Math.PI);
+            ctx.fill();
 
-        var ctx=canvas.getContext("2d");
-
-        ctx.strokeStyle="#FFCC00";
-        ctx.lineWidth=3;
-        ctx.beginPath();
-        ctx.arc(canvas.width/2, canvas.height/2, canvas.width/3+10, 0, 2* Math.PI);
-        ctx.stroke();
-
-        ctx.fillStyle="#FFCC00";
-        ctx.beginPath();
-        ctx.arc(canvas.width/2, canvas.height/2, canvas.width/4, 0, 2* Math.PI);
-        ctx.fill();
-
-        return canvas;
+        });
 
     }
 
-    var globe_mainParticles = function(){
+    var mainParticles = function(){
 
         var material, geometry;
 
@@ -414,7 +391,7 @@ var ENCOM = (function(ENCOM, document){
             
 
             var vertex = new THREE.Vector3();
-            var point = globe_mapPoint(this.points[i].lat, this.points[i].lon, 500);
+            var point = mapPoint(this.points[i].lat, this.points[i].lon, 500);
             var delay = this.swirlTime*((180+this.points[i].lon)/360.0); 
 
             vertex.x = 0;
@@ -423,19 +400,19 @@ var ENCOM = (function(ENCOM, document){
 
             geometry.vertices.push( vertex );
 
-            globe_addPointAnimation.call(this,delay, i, {
+            addPointAnimation.call(this,delay, i, {
                 x : point.x*this.swirlMultiplier,
                 y : point.y*this.swirlMultiplier,
                 z : point.z*this.swirlMultiplier});
 
             for(var a = 0; a < 4; a++){
-                globe_addPointAnimation.call(this,delay + 500 + (60)*a, i, {
+                addPointAnimation.call(this,delay + 500 + (60)*a, i, {
                     x : point.x*(this.swirlMultiplier - (.1 + a/40.0)),
                     y : point.y*(this.swirlMultiplier - (.1 + a/40.0)),
                     z : point.z*(this.swirlMultiplier - (.1 + a/40.0))});
             }
 
-            globe_addPointAnimation.call(this,delay + 690, i, {
+            addPointAnimation.call(this,delay + 690, i, {
                 x : point.x,
                 y : point.y,
                 z : point.z});
@@ -456,7 +433,7 @@ var ENCOM = (function(ENCOM, document){
 
     };
 
-    var globe_swirls = function(){
+    var swirls = function(){
         var geometrySpline;
         var sPoint;
         var _this = this;
@@ -481,7 +458,7 @@ var ENCOM = (function(ENCOM, document){
             }
 
             for(var j = 0; j< lenBase; j++){
-                var thisPoint = globe_mapPoint(lat, lon - j * 5);
+                var thisPoint = mapPoint(lat, lon - j * 5);
                 sPoint = new THREE.Vector3(thisPoint.x*this.swirlMultiplier, thisPoint.y*this.swirlMultiplier, thisPoint.z*this.swirlMultiplier);
 
                 geometrySpline.vertices.push(sPoint);  
@@ -493,7 +470,7 @@ var ENCOM = (function(ENCOM, document){
         this.scene.add(this.swirl);
     };
 
-    var globe_removeMarker = function(marker){
+    var removeMarker = function(marker){
 
         var pos = marker.line.geometry.vertices[1];
         var _this = this;
@@ -533,13 +510,13 @@ var ENCOM = (function(ENCOM, document){
         });
 
         if(this.quills.length > this.maxQuills){
-            globe_removeQuill.call(this, this.quills.shift());
+            removeQuill.call(this, this.quills.shift());
         }
 
 
     };
 
-    var globe_removeQuill = function(quill){
+    var removeQuill = function(quill){
 
         var pos = quill.line.geometry.vertices[1];
         var pos2 = quill.line.geometry.vertices[0];
@@ -561,13 +538,13 @@ var ENCOM = (function(ENCOM, document){
 
     };
 
-    var globe_updateSatellites = function(renderTime){
+    var updateSatellites = function(renderTime){
         for(var i = 0; i< this.satelliteAnimations.length; i++){
             this.satelliteAnimations[i].update(renderTime);
         }
     };
 
-    var globe_registerMarker = function(marker, lat, lng){
+    var registerMarker = function(marker, lat, lng){
         var labelKey = Math.floor(lat/20) + '-' + Math.floor(lng/40);
         if(Math.abs(lat)>80){
             labelKey = Math.floor(lat/20);
@@ -576,7 +553,7 @@ var ENCOM = (function(ENCOM, document){
         
     };
 
-    var globe_findNearbyMarkers = function(lat, lng){
+    var findNearbyMarkers = function(lat, lng){
         var ret = [];
         var labelKey = Math.floor(lat/20) + '-' + Math.floor(lng/40);
         if(Math.abs(lat)>80){
@@ -676,7 +653,7 @@ var ENCOM = (function(ENCOM, document){
                     projectionContext.drawImage(img, 0, 0, img.width, img.height);
                     for (var i = 0; i< _this.samples.length; i++){
                         
-                        globe_samplePoints(projectionContext,img.width, img.height, _this.samples[i].offsetLat, _this.samples[i].offsetLon, _this.samples[i].incLat, _this.samples[i].incLon, function(point){
+                        samplePoints(projectionContext,img.width, img.height, _this.samples[i].offsetLat, _this.samples[i].offsetLon, _this.samples[i].incLat, _this.samples[i].incLon, function(point){
                             if((point.lat > -60 || Math.random() > .9) && Math.random()>.2){ // thin it out (especially antartica)
                                 _this.points.push(point);
                             }
@@ -719,11 +696,10 @@ var ENCOM = (function(ENCOM, document){
                     _this.scene.fog = new THREE.Fog( 0x000000, _this.cameraDistance-200, _this.cameraDistance+275 );
 
                     // add the globe particles
-                    
-                    globe_mainParticles.call(_this);
+                    mainParticles.call(_this);
 
                     // add the swirls
-                    globe_swirls.call(_this);
+                    swirls.call(_this);
 
                     // pregenerate the satellite canvas
                     var numFrames = 50;
@@ -732,7 +708,7 @@ var ENCOM = (function(ENCOM, document){
                     var waveStart = Math.floor(numFrames/8);
                     var numWaves = 8;
                     var repeatAt = Math.floor(numFrames-2*(numFrames-waveStart)/numWaves)+1;
-                    _this.satelliteCanvas = globe_createSatelliteCanvas.call(this, numFrames, pixels, rows, waveStart, numWaves);
+                    _this.satelliteCanvas = createSatelliteCanvas.call(this, numFrames, pixels, rows, waveStart, numWaves);
 
                     // initialize the smoke
                     // create particle system
@@ -842,7 +818,7 @@ var ENCOM = (function(ENCOM, document){
         this.markerTopTexture = new THREE.ImageUtils.loadTexture( 'resources/markertop.png', undefined, registerCallback());
         this.hexTexture = THREE.ImageUtils.loadTexture( "resources/hex.png", undefined, registerCallback());
         
-        this.specialMarkerTexture = new THREE.Texture(globe_createSpecialMarkerCanvas.call(this));
+        this.specialMarkerTexture = new THREE.Texture(createSpecialMarkerCanvas.call(this));
         this.specialMarkerTexture.needsUpdate = true;
 
         img.addEventListener('load', registerCallback());
@@ -853,7 +829,7 @@ var ENCOM = (function(ENCOM, document){
     Globe.prototype.addMarker = function(lat, lng, text){
 
         var _this = this;
-        var point = globe_mapPoint(lat,lng);
+        var point = mapPoint(lat,lng);
 
 
         /* check to see if we have somebody at that exact lat-lng right now */
@@ -877,7 +853,7 @@ var ENCOM = (function(ENCOM, document){
 
         line._globe_multiplier = 1.2; // if normal line, make it 1.2 times the radius in orbit
 
-        var existingMarkers = globe_findNearbyMarkers.call(_this, lat, lng);
+        var existingMarkers = findNearbyMarkers.call(_this, lat, lng);
         var allOld = true;
         for(var i = 0; i< existingMarkers.length; i++){
             if(Date.now() - existingMarkers[i].creationDate < 10000){
@@ -890,13 +866,13 @@ var ENCOM = (function(ENCOM, document){
             // get rid of old ones
             
             for(var i = 0; i< existingMarkers.length; i++){
-                globe_removeMarker.call(this, existingMarkers[i]);
+                removeMarker.call(this, existingMarkers[i]);
             }
 
             // create the new one
 
             /* add the text */
-            var textSprite = globe_createLabel(text, point.x*1.18, point.y*1.18, point.z*1.18, 18, "white");
+            var textSprite = createLabel(text, point.x*1.18, point.y*1.18, point.z*1.18, 18, "white");
             this.scene.add(textSprite);
 
             /* add the top */
@@ -938,7 +914,7 @@ var ENCOM = (function(ENCOM, document){
 
             this.markers.push(m);
 
-            globe_registerMarker.call(_this,m, lat, lng);
+            registerMarker.call(_this,m, lat, lng);
 
             setTimeout(function(){
                 _this.scene.add(markerTopSprite);
@@ -953,7 +929,7 @@ var ENCOM = (function(ENCOM, document){
             
 
             if(this.quills.length > this.maxQuills){
-                globe_removeQuill.call(this, this.quills.shift());
+                removeQuill.call(this, this.quills.shift());
             }
         }
 
@@ -975,8 +951,8 @@ var ENCOM = (function(ENCOM, document){
 
         var _this = this;
 
-        var point1 = globe_mapPoint(lat1,lng1);
-        var point2 = globe_mapPoint(lat2,lng2);
+        var point1 = mapPoint(lat1,lng1);
+        var point2 = mapPoint(lat2,lng2);
 
         var markerMaterial = new THREE.SpriteMaterial({map: _this.specialMarkerTexture, opacity: .7, depthTest: false, fog: true});
         // var markerMaterial = new THREE.SpriteMaterial({map: _this.markerTopTexture});
@@ -993,8 +969,8 @@ var ENCOM = (function(ENCOM, document){
         this.scene.add(marker1);
         this.scene.add(marker2);
 
-        var textSprite1 = globe_createLabel(text1.toUpperCase(), point1.x*1.25, point1.y*1.25, point1.z*1.25, 25, "white", "#FFCC00");
-        var textSprite2 = globe_createLabel(text2.toUpperCase(), point2.x*1.25, point2.y*1.25, point2.z*1.25, 25, "white", "#FFCC00");
+        var textSprite1 = createLabel(text1.toUpperCase(), point1.x*1.25, point1.y*1.25, point1.z*1.25, 25, "white", "#FFCC00");
+        var textSprite2 = createLabel(text2.toUpperCase(), point2.x*1.25, point2.y*1.25, point2.z*1.25, 25, "white", "#FFCC00");
 
         this.scene.add(textSprite1);
         this.scene.add(textSprite2);
@@ -1034,7 +1010,7 @@ var ENCOM = (function(ENCOM, document){
 
         var latdist = (lat2 - lat1)/99;
         var londist = (lng2 - lng1)/99;
-        var startPoint = globe_mapPoint(lat1, lng1);
+        var startPoint = mapPoint(lat1, lng1);
         var pointList = [];
         var pointList2 = [];
 
@@ -1051,7 +1027,7 @@ var ENCOM = (function(ENCOM, document){
             } else {
                 pointList2.push({lat: nextlat+1, lon: nextlon, index: j});
             }
-            // var thisPoint = globe_mapPoint(nextlat, nextlon);
+            // var thisPoint = mapPoint(nextlat, nextlon);
             sPoint = new THREE.Vector3(startPoint.x*1.2, startPoint.y*1.2, startPoint.z*1.2);
             sPoint2 = new THREE.Vector3(startPoint.x*1.2, startPoint.y*1.2, startPoint.z*1.2);
             // sPoint = new THREE.Vector3(thisPoint.x*1.2, thisPoint.y*1.2, thisPoint.z*1.2);
@@ -1075,10 +1051,10 @@ var ENCOM = (function(ENCOM, document){
             for(var x = 0; x< geometrySpline.vertices.length; x++){
                 
                 currentVert = geometrySpline.vertices[x];
-                currentPoint = globe_mapPoint(nextSpot.lat, nextSpot.lon);
+                currentPoint = mapPoint(nextSpot.lat, nextSpot.lon);
 
                 currentVert2 = geometrySpline2.vertices[x];
-                currentPoint2 = globe_mapPoint(nextSpot2.lat, nextSpot2.lon);
+                currentPoint2 = mapPoint(nextSpot2.lat, nextSpot2.lon);
 
 
                 if(x >= nextSpot.index){
@@ -1097,7 +1073,6 @@ var ENCOM = (function(ENCOM, document){
             update();
         }, 2000);
 
-
         this.scene.add(new THREE.Line(geometrySpline, materialSpline));
         this.scene.add(new THREE.Line(geometrySpline2, materialSpline2, THREE.LinePieces));
             
@@ -1106,7 +1081,7 @@ var ENCOM = (function(ENCOM, document){
 
     Globe.prototype.addSatellite = function(lat, lon, dist, newTexture){
 
-        var point = globe_mapPoint(lat,lon);
+        var point = mapPoint(lat,lon);
         point.x *= dist;
         point.y *= dist;
         point.z *= dist;
@@ -1180,7 +1155,7 @@ var ENCOM = (function(ENCOM, document){
 
 
     Globe.prototype.tick = function(){
-        globe_runPointAnimations.call(this);
+        runPointAnimations.call(this);
         TWEEN.update();
 
         if(!this.lastRenderDate){
@@ -1234,7 +1209,7 @@ var ENCOM = (function(ENCOM, document){
 
         this.camera.lookAt( this.scene.position );
         this.renderer.render( this.scene, this.camera );
-        globe_updateSatellites.call(this, renderTime);
+        updateSatellites.call(this, renderTime);
 
     }
 
@@ -1242,4 +1217,4 @@ var ENCOM = (function(ENCOM, document){
 
     return ENCOM;
 
-})(ENCOM || {}, document);
+})(ENCOM || {}, THREE, document);
