@@ -13,10 +13,11 @@
         <script>
             var globe;
 
-            var globeOpts = {
+            globe = new ENCOM.Globe({
                 font: "Inconsolata",
-
-            };
+                width: 1000,
+                height: 500
+                });
 
             function animate(){
                 globe.tick();
@@ -55,6 +56,7 @@
 
             $(function() {
 
+
                 WebFontConfig = {
                     google: {
                           families: ['Inconsolata']
@@ -62,8 +64,9 @@
                     active: function(){
                         /* don't start the globe until the font has been loaded */
 
-                        globe = new ENCOM.Globe({containerId: "container"});
+
                         globe.init(start);
+                        $("#container").append(globe.domElement);
                     }
                 };
 

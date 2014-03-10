@@ -26,7 +26,7 @@ var ENCOM = (function(ENCOM, THREE, document){
     {   
         var _this = this;
         // note: texture passed by reference, will be updated by the update function.
-        
+
         if(repeatAtTile == undefined){
             repeatAtTile=-1;
         }
@@ -53,7 +53,7 @@ var ENCOM = (function(ENCOM, THREE, document){
 
         // which image is currently being displayed?
         this.currentTile = 0;
-        
+
         texture.offset.y = 1;
 
         this.update = function( milliSec )
@@ -81,7 +81,7 @@ var ENCOM = (function(ENCOM, THREE, document){
             _this.shutDownCb = cb;
         }
 
-    }   
+    };
 
 
     /* private globe function */
@@ -94,16 +94,14 @@ var ENCOM = (function(ENCOM, THREE, document){
         return {x: x, y:y};
     };
 
-
-
     var samplePoints = function(projectionContext, width, height, latoffset, lonoffset, latinc, loninc, cb){
         var points = [],
-            isPixelBlack = function(context, x, y, width, height){
-                if(pixelData == undefined){
-                    pixelData = context.getImageData(0,0,width, height);
-                }
-                return pixelData.data[(y * pixelData.width + x) * 4] === 0;
-            };
+        isPixelBlack = function(context, x, y, width, height){
+            if(pixelData == undefined){
+                pixelData = context.getImageData(0,0,width, height);
+            }
+            return pixelData.data[(y * pixelData.width + x) * 4] === 0;
+        };
 
         for(var lat = 90-latoffset; lat > -90; lat -= latinc){
             for(var lon = -180+lonoffset; lon < 180; lon += loninc){
@@ -118,16 +116,16 @@ var ENCOM = (function(ENCOM, THREE, document){
     };
 
     var mapPoint = function(lat, lng, scale) {
-       if(!scale){
-           scale = 500;
-       }
-       var phi = (90 - lat) * Math.PI / 180;
-       var theta = (180 - lng) * Math.PI / 180;
-       var x = scale * Math.sin(phi) * Math.cos(theta);
-       var y = scale * Math.cos(phi);
-       var z = scale * Math.sin(phi) * Math.sin(theta);
-       return {x: x, y: y, z:z};
-     }
+        if(!scale){
+            scale = 500;
+        }
+        var phi = (90 - lat) * Math.PI / 180;
+        var theta = (180 - lng) * Math.PI / 180;
+        var x = scale * Math.sin(phi) * Math.cos(theta);
+        var y = scale * Math.cos(phi);
+        var z = scale * Math.sin(phi) * Math.sin(theta);
+        return {x: x, y: y, z:z};
+    }
 
     var addPointAnimation = function(when, verticleIndex, position){
         var pCount = this.globe_pointAnimations.length-1;
@@ -209,17 +207,17 @@ var ENCOM = (function(ENCOM, THREE, document){
             opacity:0,
             depthTest: false,
             fog: true
-            
-            });
+
+        });
         var sprite = new THREE.Sprite(material);
         sprite.position = {x: x*1.1, y: y + (y < 0 ? -15 : 30), z: z*1.1};
         sprite.scale.set(canvas.width, canvas.height);
-            new TWEEN.Tween( {opacity: 0})
-                .to( {opacity: 1}, 500 )
-                .onUpdate(function(){
-                    material.opacity = this.opacity
-                }).delay(1000)
-                .start();
+        new TWEEN.Tween( {opacity: 0})
+        .to( {opacity: 1}, 500 )
+        .onUpdate(function(){
+            material.opacity = this.opacity
+        }).delay(1000)
+        .start();
 
         return sprite;
 
@@ -232,7 +230,7 @@ var ENCOM = (function(ENCOM, THREE, document){
         var waveDist = pixels - 25; // width - center of satellite
         var distPerFrame = waveDist / (numFrames-waveStart)
         var offsetx = 0,
-            offsety = 0;
+        offsety = 0;
         var curRow = 0;
 
         return renderToCanvas(numFrames * pixels / rows, pixels * rows, function(ctx){
@@ -247,13 +245,13 @@ var ENCOM = (function(ENCOM, THREE, document){
                 var centerx = offsetx + 25;
                 var centery = offsety + Math.floor(pixels/2);
 
-               /* white circle around red core */
+                /* white circle around red core */
                 // i have between 0 and wavestart to fade in
                 // i have between wavestart and  waveend - (time between waves*2) 
                 // to do a full spin close and then back open
                 // i have between waveend-2*(timebetween waves)/2 and waveend to rotate Math.PI/4 degrees
                 // this is probably the ugliest code in all of here -- basically I just messed arund with stuff until it looked ok
-               
+
                 ctx.lineWidth=2;
                 ctx.strokeStyle="#FFFFFF";
                 var buffer=Math.PI/16;
@@ -290,7 +288,7 @@ var ENCOM = (function(ENCOM, THREE, document){
                         var distToGo = n*2*Math.PI/4;
                         var currentStep = (i-swirlDone);
                         var movementPerStep = distToGo / totalTimeToComplete;
-                    
+
 
                         var startAngle = Math.PI/2 + Math.PI/4 + buffer + movementPerStep*currentStep;
                         ctx.arc(centerx, centery, radius,startAngle, startAngle + Math.PI/2 - 2*buffer);
@@ -352,7 +350,7 @@ var ENCOM = (function(ENCOM, THREE, document){
 
     var createSpecialMarkerCanvas = function() {
         var markerWidth = 100,
-            markerHeight = 100;
+        markerHeight = 100;
 
         return renderToCanvas(markerWidth, markerHeight, function(ctx){
             ctx.strokeStyle="#FFCC00";
@@ -388,7 +386,7 @@ var ENCOM = (function(ENCOM, THREE, document){
         var geometry = new THREE.Geometry();
 
         for ( i = 0; i < this.points.length; i ++ ) {
-            
+
 
             var vertex = new THREE.Vector3();
             var point = mapPoint(this.points[i].lat, this.points[i].lon, 500);
@@ -405,19 +403,19 @@ var ENCOM = (function(ENCOM, THREE, document){
                 y : point.y*this.swirlMultiplier,
                 z : point.z*this.swirlMultiplier});
 
-            for(var a = 0; a < 4; a++){
-                addPointAnimation.call(this,delay + 500 + (60)*a, i, {
-                    x : point.x*(this.swirlMultiplier - (.1 + a/40.0)),
-                    y : point.y*(this.swirlMultiplier - (.1 + a/40.0)),
-                    z : point.z*(this.swirlMultiplier - (.1 + a/40.0))});
-            }
+                for(var a = 0; a < 4; a++){
+                    addPointAnimation.call(this,delay + 500 + (60)*a, i, {
+                        x : point.x*(this.swirlMultiplier - (.1 + a/40.0)),
+                        y : point.y*(this.swirlMultiplier - (.1 + a/40.0)),
+                        z : point.z*(this.swirlMultiplier - (.1 + a/40.0))});
+                }
 
-            addPointAnimation.call(this,delay + 690, i, {
-                x : point.x,
-                y : point.y,
-                z : point.z});
+                addPointAnimation.call(this,delay + 690, i, {
+                    x : point.x,
+                    y : point.y,
+                    z : point.z});
 
-            colors[i] = new THREE.Color( myColors[Math.floor(Math.random() * myColors.length)].hex6());
+                    colors[i] = new THREE.Color( myColors[Math.floor(Math.random() * myColors.length)].hex6());
 
         }
 
@@ -439,11 +437,11 @@ var ENCOM = (function(ENCOM, THREE, document){
         var _this = this;
 
         this.swirlMaterial = new THREE.LineBasicMaterial({
-                color: 0x8FD8D8,
-                transparent: true,
-                linewidth: 2,
-                opacity: .8
-            });
+            color: 0x8FD8D8,
+            transparent: true,
+            linewidth: 2,
+            opacity: .8
+        });
 
         for(var i = 0; i<75; i++){
             geometrySpline = new THREE.Geometry();
@@ -465,7 +463,7 @@ var ENCOM = (function(ENCOM, THREE, document){
             }
 
             this.swirl.add(new THREE.Line(geometrySpline, this.swirlMaterial));
-            
+
         }
         this.scene.add(this.swirl);
     };
@@ -489,20 +487,20 @@ var ENCOM = (function(ENCOM, THREE, document){
         }
 
         new TWEEN.Tween({posx: pos.x, posy: pos.y, posz: pos.z, opacity: 1})
-            .to( {posx: pos.x/scaleDownBy, posy: pos.y/scaleDownBy, posz: pos.z/scaleDownBy, opacity: 0}, 1000 )
-            .onUpdate(function(){
+        .to( {posx: pos.x/scaleDownBy, posy: pos.y/scaleDownBy, posz: pos.z/scaleDownBy, opacity: 0}, 1000 )
+        .onUpdate(function(){
 
-                marker.line.geometry.vertices[1].set(this.posx, this.posy, this.posz);
-                marker.line.geometry.verticesNeedUpdate = true;
-                marker.label.material.opacity = this.opacity;
-                marker.top.material.opacity = this.opacity;
-                marker.top.position.set(this.posx, this.posy, this.posz);
-            })
-            .onComplete(function(){
-                _this.scene.remove(marker.label);
-                _this.scene.remove(marker.top);
-            })
-            .start();
+            marker.line.geometry.vertices[1].set(this.posx, this.posy, this.posz);
+            marker.line.geometry.verticesNeedUpdate = true;
+            marker.label.material.opacity = this.opacity;
+            marker.top.material.opacity = this.opacity;
+            marker.top.position.set(this.posx, this.posy, this.posz);
+        })
+        .onComplete(function(){
+            _this.scene.remove(marker.label);
+            _this.scene.remove(marker.top);
+        })
+        .start();
 
         this.quills.push({
             line: marker.line,
@@ -526,15 +524,15 @@ var ENCOM = (function(ENCOM, THREE, document){
         delete this.markerIndex[quill.latlng];
 
         new TWEEN.Tween({posx: pos.x, posy: pos.y, posz: pos.z, opacity: 1})
-            .to( {posx: pos2.x, posy: pos2.y, posz: pos2.z}, 1000 )
-            .onUpdate(function(){
-                quill.line.geometry.vertices[1].set(this.posx, this.posy, this.posz);
-                quill.line.geometry.verticesNeedUpdate = true;
-            })
-            .onComplete(function(){
-                _this.scene.remove(quill.line);
-            })
-            .start();
+        .to( {posx: pos2.x, posy: pos2.y, posz: pos2.z}, 1000 )
+        .onUpdate(function(){
+            quill.line.geometry.vertices[1].set(this.posx, this.posy, this.posz);
+            quill.line.geometry.verticesNeedUpdate = true;
+        })
+        .onComplete(function(){
+            _this.scene.remove(quill.line);
+        })
+        .start();
 
     };
 
@@ -550,7 +548,7 @@ var ENCOM = (function(ENCOM, THREE, document){
             labelKey = Math.floor(lat/20);
         }
         this.markerCoords[labelKey] = marker;
-        
+
     };
 
     var findNearbyMarkers = function(lat, lng){
@@ -565,7 +563,7 @@ var ENCOM = (function(ENCOM, THREE, document){
         }
 
         return ret;
-        
+
     };
 
     /* globe constructor */
@@ -579,28 +577,28 @@ var ENCOM = (function(ENCOM, THREE, document){
         var baseSampleMultiplier = .85;
 
         var defaults = {
+            width: document.width,
+            height: document.height,
             font: "Inconsolata",
             mapUrl: "resources/equirectangle_projection.png",
             size: 100,
-            width: document.width,
-            height: document.height,
             swirlMultiplier: 1.15,
             swirlTime: 3500,
             cameraDistance: 1700,
             samples: [
                 { 
-                    offsetLat: 0,
-                    offsetLon: 0,
-                    incLat: baseSampleMultiplier * 2,
-                    incLon: baseSampleMultiplier * 4
-                },
-                { 
-                    offsetLat: baseSampleMultiplier,
-                    offsetLon: baseSampleMultiplier * 2,
-                    incLat: baseSampleMultiplier * 2,
-                    incLon: baseSampleMultiplier * 4
-                }
-                ],
+                offsetLat: 0,
+                offsetLon: 0,
+                incLat: baseSampleMultiplier * 2,
+                incLon: baseSampleMultiplier * 4
+            },
+            { 
+                offsetLat: baseSampleMultiplier,
+                offsetLon: baseSampleMultiplier * 2,
+                incLat: baseSampleMultiplier * 2,
+                incLon: baseSampleMultiplier * 4
+            }
+            ],
             points: [],
             globe_pointAnimations: [],
             swirl: new THREE.Object3D(),
@@ -625,18 +623,27 @@ var ENCOM = (function(ENCOM, THREE, document){
             }
         }
 
+        // TEMP
+        // _this.container.appendChild( _this.specialPointCanvas);
+
+        this.renderer = new THREE.WebGLRenderer( { antialias: true } );
+        this.renderer.setSize( this.width, this.height);
+
+        this.domElement = this.renderer.domElement;
+
     }
 
     /* public globe functions */
 
     Globe.prototype.init = function(cb){
         var  projectionContext,
-            img = document.createElement('img'),
-            projectionCanvas = document.createElement('canvas'),
-            _this = this;
-            
+        img = document.createElement('img'),
+        projectionCanvas = document.createElement('canvas'),
+        _this = this;
+
         document.body.appendChild(projectionCanvas);
         projectionContext = projectionCanvas.getContext('2d');
+
 
         var numRegistered = 0;
 
@@ -652,7 +659,7 @@ var ENCOM = (function(ENCOM, THREE, document){
                     projectionCanvas.height = img.height;
                     projectionContext.drawImage(img, 0, 0, img.width, img.height);
                     for (var i = 0; i< _this.samples.length; i++){
-                        
+
                         samplePoints(projectionContext,img.width, img.height, _this.samples[i].offsetLat, _this.samples[i].offsetLon, _this.samples[i].incLat, _this.samples[i].incLon, function(point){
                             if((point.lat > -60 || Math.random() > .9) && Math.random()>.2){ // thin it out (especially antartica)
                                 _this.points.push(point);
@@ -661,32 +668,12 @@ var ENCOM = (function(ENCOM, THREE, document){
                     }
                     document.body.removeChild(projectionCanvas);
 
-                    // create the webgl context, renderer and camera
-                    if(_this.containerId){
-                        _this.container = document.getElementById(_this.containerId);
-                        _this.width = _this.container.clientWidth;
-                        _this.height = _this.container.clientHeight;
-                    } else {
-                        _this.container = document.createElement( 'div' );
-                        _this.container.width = _this.width;
-                        _this.container.height = _this.height;
-                        document.body.appendChild( _this.container );
-                    }
-
-                    // TEMP
-                    // _this.container.appendChild( _this.specialPointCanvas);
-
-                    _this.renderer = new THREE.WebGLRenderer( { antialias:true } );
-                    // _this.renderer = new THREE.CanvasRenderer( { clearAlpha: 1 } );
-                    _this.renderer.setSize( _this.width, _this.height);
-                    // _this.renderer.autoClear = false;
-                    _this.container.appendChild( _this.renderer.domElement );
 
                     // create the camera
 
                     _this.camera = new THREE.PerspectiveCamera( 50, _this.width / _this.height, 1, _this.cameraDistance + 275 );
                     _this.camera.position.z = _this.cameraDistance;
-                    
+
                     _this.cameraAngle=(Math.PI * 2) * .5;
 
                     // create the scene
@@ -714,60 +701,60 @@ var ENCOM = (function(ENCOM, THREE, document){
                     // create particle system
                     _this.smokeParticleGeometry = new THREE.Geometry();
 
-                   _this.smokeVertexShader = [
-                       "#define PI 3.141592653589793238462643",
-                       "#define DISTANCE 600.0",
-                       "attribute float myStartTime;",
-                       "attribute float myStartLat;",
-                       "attribute float myStartLon;",
-                       "attribute float active;",
-                       "uniform float currentTime;",
-                       "uniform vec3 color;",
-                       "varying vec4 vColor;",
-                       "",
-                       "vec3 getPos(float lat, float lon)",
-                       "{",
-                           "if (lon < -180.0){",
-                           "   lon = 180.0;",
-                           "}",
-                           "float phi = (90.0 - lat) * PI / 180.0;",
-                           "float theta = (180.0 - lon) * PI / 180.0;",
-                           "float x = DISTANCE * sin(phi) * cos(theta);",
-                           "float y = DISTANCE * cos(phi);",
-                           "float z = DISTANCE * sin(phi) * sin(theta);",
-                           "return vec3(x, y, z);",
-                       "}",
-                       "",
-                       "void main()",
-                       "{",
-                           "float dt = currentTime - myStartTime;",
-                           "if (dt < 0.0){",
-                              "dt = 0.0;",
-                           "}",
-                           "if (dt > 0.0 && active > 0.0) {",
-                             "dt = mod(dt,1500.0);",
-                           "}",
-                           "float opacity = 1.0 - dt/ 1500.0;",
-                           "if (dt == 0.0){",
-                              "opacity = 0.0;",
-                           "}",
-                           "float cameraAngle = (2.0 * PI) / (20000.0/currentTime);",
-                           "float myAngle = (180.0-myStartLon) * PI / 180.0;",
-                           "opacity = opacity * (cos(myAngle - cameraAngle - PI) + 1.0)/2.0;",
-                           "float newPosRaw = myStartLon - (dt / 50.0);",
-                           "vec3 newPos = getPos(myStartLat, myStartLon - ( dt / 50.0));",
-                           "vColor = vec4( color, opacity );", //     set color associated to vertex; use later in fragment shader.
-                           "vec4 mvPosition = modelViewMatrix * vec4( newPos, 1.0 );",
-                           "gl_PointSize = 2.5 - (dt / 1500.0);",
-                           "gl_Position = projectionMatrix * mvPosition;",
-                       "}"
-                       ].join("\n");
+                    _this.smokeVertexShader = [
+                        "#define PI 3.141592653589793238462643",
+                        "#define DISTANCE 600.0",
+                        "attribute float myStartTime;",
+                        "attribute float myStartLat;",
+                        "attribute float myStartLon;",
+                        "attribute float active;",
+                        "uniform float currentTime;",
+                        "uniform vec3 color;",
+                        "varying vec4 vColor;",
+                        "",
+                        "vec3 getPos(float lat, float lon)",
+                        "{",
+                        "if (lon < -180.0){",
+                        "   lon = 180.0;",
+                        "}",
+                        "float phi = (90.0 - lat) * PI / 180.0;",
+                        "float theta = (180.0 - lon) * PI / 180.0;",
+                        "float x = DISTANCE * sin(phi) * cos(theta);",
+                        "float y = DISTANCE * cos(phi);",
+                        "float z = DISTANCE * sin(phi) * sin(theta);",
+                        "return vec3(x, y, z);",
+                        "}",
+                        "",
+                        "void main()",
+                        "{",
+                        "float dt = currentTime - myStartTime;",
+                        "if (dt < 0.0){",
+                        "dt = 0.0;",
+                        "}",
+                        "if (dt > 0.0 && active > 0.0) {",
+                        "dt = mod(dt,1500.0);",
+                        "}",
+                        "float opacity = 1.0 - dt/ 1500.0;",
+                        "if (dt == 0.0){",
+                        "opacity = 0.0;",
+                        "}",
+                        "float cameraAngle = (2.0 * PI) / (20000.0/currentTime);",
+                        "float myAngle = (180.0-myStartLon) * PI / 180.0;",
+                        "opacity = opacity * (cos(myAngle - cameraAngle - PI) + 1.0)/2.0;",
+                        "float newPosRaw = myStartLon - (dt / 50.0);",
+                        "vec3 newPos = getPos(myStartLat, myStartLon - ( dt / 50.0));",
+                        "vColor = vec4( color, opacity );", //     set color associated to vertex; use later in fragment shader.
+                        "vec4 mvPosition = modelViewMatrix * vec4( newPos, 1.0 );",
+                        "gl_PointSize = 2.5 - (dt / 1500.0);",
+                        "gl_Position = projectionMatrix * mvPosition;",
+                        "}"
+                    ].join("\n");
 
-                   _this.smokeFragmentShader = [
-                       "varying vec4 vColor;",     
+                    _this.smokeFragmentShader = [
+                        "varying vec4 vColor;",     
                         "void main()", 
                         "{",
-                           "gl_FragColor = vColor;",
+                        "gl_FragColor = vColor;",
                         "}"
                     ].join("\n");
 
@@ -817,7 +804,7 @@ var ENCOM = (function(ENCOM, THREE, document){
 
         this.markerTopTexture = new THREE.ImageUtils.loadTexture( 'resources/markertop.png', undefined, registerCallback());
         this.hexTexture = THREE.ImageUtils.loadTexture( "resources/hex.png", undefined, registerCallback());
-        
+
         this.specialMarkerTexture = new THREE.Texture(createSpecialMarkerCanvas.call(this));
         this.specialMarkerTexture.needsUpdate = true;
 
@@ -845,7 +832,7 @@ var ENCOM = (function(ENCOM, THREE, document){
         var markerGeometry = new THREE.Geometry();
         var markerMaterial = new THREE.LineBasicMaterial({
             color: 0x8FD8D8,
-            });
+        });
         markerGeometry.vertices.push(new THREE.Vector3(point.x, point.y, point.z));
         markerGeometry.vertices.push(new THREE.Vector3(point.x, point.y, point.z));
         var line = new THREE.Line(markerGeometry, markerMaterial);
@@ -864,7 +851,7 @@ var ENCOM = (function(ENCOM, THREE, document){
 
         if(existingMarkers.length == 0 || allOld){
             // get rid of old ones
-            
+
             for(var i = 0; i< existingMarkers.length; i++){
                 removeMarker.call(this, existingMarkers[i]);
             }
@@ -926,7 +913,7 @@ var ENCOM = (function(ENCOM, THREE, document){
                 line: line,
                 latlng: lat + "-" + lng
             });
-            
+
 
             if(this.quills.length > this.maxQuills){
                 removeQuill.call(this, this.quills.shift());
@@ -934,15 +921,15 @@ var ENCOM = (function(ENCOM, THREE, document){
         }
 
         new TWEEN.Tween(point)
-            .to( {x: point.x*line._globe_multiplier, y: point.y*line._globe_multiplier, z: point.z*line._globe_multiplier}, 1500 )
-            .easing( TWEEN.Easing.Elastic.InOut )
-            .onUpdate(function(){
-                markerGeometry.vertices[1].x = this.x;
-                markerGeometry.vertices[1].y = this.y;
-                markerGeometry.vertices[1].z = this.z;
-                markerGeometry.verticesNeedUpdate = true;
-            })
-            .start();
+        .to( {x: point.x*line._globe_multiplier, y: point.y*line._globe_multiplier, z: point.z*line._globe_multiplier}, 1500 )
+        .easing( TWEEN.Easing.Elastic.InOut )
+        .onUpdate(function(){
+            markerGeometry.vertices[1].x = this.x;
+            markerGeometry.vertices[1].y = this.y;
+            markerGeometry.vertices[1].z = this.z;
+            markerGeometry.verticesNeedUpdate = true;
+        })
+        .start();
 
 
     }
@@ -976,21 +963,21 @@ var ENCOM = (function(ENCOM, THREE, document){
         this.scene.add(textSprite2);
 
         new TWEEN.Tween({x: 0, y: 0})
-            .to({x: 50, y: 50}, 2000)
-            .easing( TWEEN.Easing.Elastic.InOut )
-            .onUpdate(function(){
-                marker1.scale.set(this.x, this.y);
-            })
-            .start();
+        .to({x: 50, y: 50}, 2000)
+        .easing( TWEEN.Easing.Elastic.InOut )
+        .onUpdate(function(){
+            marker1.scale.set(this.x, this.y);
+        })
+        .start();
 
         new TWEEN.Tween({x: 0, y: 0})
-            .to({x: 45, y: 45}, 2000)
-            .easing( TWEEN.Easing.Elastic.InOut )
-            .onUpdate(function(){
-                marker2.scale.set(this.x, this.y);
-            })
-            .delay(2200)
-            .start();
+        .to({x: 45, y: 45}, 2000)
+        .easing( TWEEN.Easing.Elastic.InOut )
+        .onUpdate(function(){
+            marker2.scale.set(this.x, this.y);
+        })
+        .delay(2200)
+        .start();
 
         var geometrySpline = new THREE.Geometry();
         var materialSpline = new THREE.LineBasicMaterial({
@@ -1018,7 +1005,7 @@ var ENCOM = (function(ENCOM, THREE, document){
             // var nextlat = ((90 + lat1 + j*1)%180)-90;
             // var nextlon = ((180 + lng1 + j*1)%360)-180;
 
-            
+
             var nextlat = (((90 + lat1 + j*latdist)%180)-90) * (.5 + Math.cos(j*(5*Math.PI/2)/99)/2) + (j*lat2/99/2);
             var nextlon = ((180 + lng1 + j*londist)%360)-180;
             pointList.push({lat: nextlat, lon: nextlon, index: j});
@@ -1047,9 +1034,9 @@ var ENCOM = (function(ENCOM, THREE, document){
         var update = function(){
             var nextSpot = pointList.shift();
             var nextSpot2 = pointList2.shift();
-            
+
             for(var x = 0; x< geometrySpline.vertices.length; x++){
-                
+
                 currentVert = geometrySpline.vertices[x];
                 currentPoint = mapPoint(nextSpot.lat, nextSpot.lon);
 
@@ -1075,7 +1062,7 @@ var ENCOM = (function(ENCOM, THREE, document){
 
         this.scene.add(new THREE.Line(geometrySpline, materialSpline));
         this.scene.add(new THREE.Line(geometrySpline2, materialSpline2, THREE.LinePieces));
-            
+
     }
 
 
@@ -1094,10 +1081,10 @@ var ENCOM = (function(ENCOM, THREE, document){
         var repeatAt = Math.floor(numFrames-2*(numFrames-waveStart)/numWaves)+1;
 
         if(newTexture || !this.satelliteTexture){
-           this.satelliteTexture = new THREE.Texture(this.satelliteCanvas)
-           this.satelliteTexture.needsUpdate = true;
-           var animator = new TextureAnimator(this.satelliteTexture,rows, numFrames/rows, numFrames, 80, repeatAt); 
-           this.satelliteAnimations.push(animator);
+            this.satelliteTexture = new THREE.Texture(this.satelliteCanvas)
+            this.satelliteTexture.needsUpdate = true;
+            var animator = new TextureAnimator(this.satelliteTexture,rows, numFrames/rows, numFrames, 80, repeatAt); 
+            this.satelliteAnimations.push(animator);
         }
 
         var material = new THREE.MeshBasicMaterial({
@@ -1185,7 +1172,7 @@ var ENCOM = (function(ENCOM, THREE, document){
             mesh.rotateZ(mesh.tiltDirection * Math.PI/2);
             mesh.rotateZ(Math.sin(this.cameraAngle + (mesh.lon / 180) * Math.PI) * mesh.tiltMultiplier * mesh.tiltDirection * -1);
 
-            
+
         }
 
         if(this.swirlTime > this.totalRunTime){
@@ -1204,7 +1191,7 @@ var ENCOM = (function(ENCOM, THREE, document){
         }
 
         // do the particles
-        
+
         this.smokeUniforms.currentTime.value = this.totalRunTime;
 
         this.camera.lookAt( this.scene.position );
