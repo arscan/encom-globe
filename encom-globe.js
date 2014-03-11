@@ -83,7 +83,6 @@ var ENCOM = (function(ENCOM, THREE, document){
 
     };
 
-
     /* private globe function */
 
     var latLonToXY = function(width, height, lat,lon){
@@ -168,6 +167,16 @@ var ENCOM = (function(ENCOM, THREE, document){
 
         canvas.width = textWidth;
         canvas.height = size + 10;
+
+
+        // better if canvases have even heights
+        if(canvas.width % 2){
+            canvas.width++;
+        }
+        if(canvas.height % 2){
+            canvas.height++;
+        }
+
         if(underlineColor){
             canvas.height += 30;
         }
@@ -184,14 +193,14 @@ var ENCOM = (function(ENCOM, THREE, document){
 
         context.strokeText(text, canvas.width / 2, canvas.height / 2);
 
-        context.lineWidth = 1;
+        context.lineWidth = 2;
 
         context.fillStyle = color;
         context.fillText(text, canvas.width / 2, canvas.height / 2);
 
         if(underlineColor){
             context.strokeStyle=underlineColor;
-            context.lineWidth=2;
+            context.lineWidth=4;
             context.beginPath();
             context.moveTo(0, canvas.height-10);
             context.lineTo(canvas.width-1, canvas.height-10);
@@ -209,6 +218,7 @@ var ENCOM = (function(ENCOM, THREE, document){
             fog: true
 
         });
+
         var sprite = new THREE.Sprite(material);
         sprite.position = {x: x*1.1, y: y + (y < 0 ? -15 : 30), z: z*1.1};
         sprite.scale.set(canvas.width, canvas.height);
@@ -424,8 +434,6 @@ var ENCOM = (function(ENCOM, THREE, document){
         material = new THREE.ParticleSystemMaterial( { size: 13, map: sprite, vertexColors: true, transparent: false} );
 
         this.globe_particles = new THREE.ParticleSystem( geometry, material );
-        this.globe_particles.geometry.dynamic=true;
-
 
         this.scene.add( this.globe_particles );
 
@@ -583,7 +591,7 @@ var ENCOM = (function(ENCOM, THREE, document){
             mapUrl: "resources/equirectangle_projection.png",
             size: 100,
             swirlMultiplier: 1.15,
-            swirlTime: 3500,
+            swirlTime: 2500,
             cameraDistance: 1700,
             samples: [
                 { 
@@ -623,9 +631,6 @@ var ENCOM = (function(ENCOM, THREE, document){
             }
         }
 
-        // TEMP
-        // _this.container.appendChild( _this.specialPointCanvas);
-
         this.renderer = new THREE.WebGLRenderer( { antialias: true } );
         this.renderer.setSize( this.width, this.height);
 
@@ -637,13 +642,12 @@ var ENCOM = (function(ENCOM, THREE, document){
 
     Globe.prototype.init = function(cb){
         var  projectionContext,
-        img = document.createElement('img'),
-        projectionCanvas = document.createElement('canvas'),
-        _this = this;
+            img = document.createElement('img'),
+            projectionCanvas = document.createElement('canvas'),
+            _this = this;
 
         document.body.appendChild(projectionCanvas);
         projectionContext = projectionCanvas.getContext('2d');
-
 
         var numRegistered = 0;
 
@@ -735,7 +739,7 @@ var ENCOM = (function(ENCOM, THREE, document){
                         "dt = mod(dt,1500.0);",
                         "}",
                         "float opacity = 1.0 - dt/ 1500.0;",
-                        "if (dt == 0.0){",
+                        "if (dt == 0.0 || active == 0.0){",
                         "opacity = 0.0;",
                         "}",
                         "float cameraAngle = (2.0 * PI) / (20000.0/currentTime);",
@@ -780,7 +784,7 @@ var ENCOM = (function(ENCOM, THREE, document){
 
                     for(var i = 0; i< 2000; i++){
                         var vertex = new THREE.Vector3();
-                        vertex.set(1000,1000,1000);
+                        vertex.set(0,0,_this.cameraDistance+1);
                         _this.smokeParticleGeometry.vertices.push( vertex );
                         _this.smokeAttributes.myStartTime.value[i] = 0.0;
                         _this.smokeAttributes.myStartLat.value[i] = 0.0;
@@ -1181,7 +1185,7 @@ var ENCOM = (function(ENCOM, THREE, document){
             } else if(this.totalRunTime/this.swirlTime < .9){
                 this.swirlMaterial.opacity = .8;
             }if(this.totalRunTime/this.swirlTime > .9){
-                this.swirlMaterial.opacity = Math.max(1-this.totalRunTime/this.swirlTime,0);
+                // this.swirlMaterial.opacity = Math.max(1-this.totalRunTime/this.swirlTime,0);
             }
             this.swirl.rotateY((2 * Math.PI)/(this.swirlTime/renderTime));
         } else if(this.swirl){
