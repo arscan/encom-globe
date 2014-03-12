@@ -106,6 +106,9 @@ var ENCOM = (function(ENCOM, THREE, document){
             for(var lon = -180+lonoffset; lon < 180; lon += loninc){
                 var point = latLonToXY(width, height, lat, lon);
                 if(isPixelBlack(projectionContext,point.x, point.y, width, height)){
+                    // if(Math.random() < .01){
+                    //     console.log("{lat: " + lat + ",lng:" + lon + ",label:\"\"},");
+                    // }
                     cb({lat: lat, lon: lon});
                     points.push({lat: lat, lon: lon});
                 }
@@ -155,6 +158,19 @@ var ENCOM = (function(ENCOM, THREE, document){
             this.globe_pointAnimations.push(next);
         }
 
+    };
+
+    var addInitialData = function(){
+        if(this.data.length == 0){
+            return;
+        }
+        while(this.data.length > 0 && this.firstRunTime + (next = this.data.pop()).when < Date.now()){
+            this.addMarker(next.lat, next.lng, next.label);
+        }
+
+        if(this.firstRunTime + next.when >= Date.now()){
+            this.data.push(next);
+        }
     };
 
     var createLabel = function(text, x, y, z, size, color, underlineColor) {
@@ -617,9 +633,11 @@ var ENCOM = (function(ENCOM, THREE, document){
             maxQuills:100,
             markerIndex: {},
             satelliteAnimations: [],
-            satelliteMeshes: []
+            satelliteMeshes: [],
+            data: []
 
         };
+
 
         this.smokeIndex = 0;
 
@@ -635,6 +653,14 @@ var ENCOM = (function(ENCOM, THREE, document){
         this.renderer.setSize( this.width, this.height);
 
         this.domElement = this.renderer.domElement;
+
+        this.data.sort(function(a,b){return (b.lng - b.label.length * 2) - (a.lng - a.label.length * 2)});
+
+        for(var i = 0; i< this.data.length; i++){
+            console.log(this.data[i]);
+            var delay = this.swirlTime*((180+this.data[i].lng)/360.0); 
+            this.data[i].when = delay + 100;
+        }
 
     }
 
@@ -867,7 +893,7 @@ var ENCOM = (function(ENCOM, THREE, document){
             this.scene.add(textSprite);
 
             /* add the top */
-            var markerTopMaterial = new THREE.SpriteMaterial({map: _this.markerTopTexture, color: 0xFD7D8, depthTest: false, fog: true});
+            var markerTopMaterial = new THREE.SpriteMaterial({map: _this.markerTopTexture, color: 0xFD7D8, depthTest: false, fog: true, opacity: text.length > 0});
             var markerTopSprite = new THREE.Sprite(markerTopMaterial);
             markerTopSprite.scale.set(15, 15);
             markerTopSprite.position.set(point.x*1.2, point.y*1.2, point.z*1.2);
@@ -882,7 +908,7 @@ var ENCOM = (function(ENCOM, THREE, document){
                 _this.smokeAttributes.myStartTime.value[_this.smokeIndex] = _this.totalRunTime + (i*50 + 1500);
                 _this.smokeAttributes.myStartLat.value[_this.smokeIndex] = lat;
                 _this.smokeAttributes.myStartLon.value[_this.smokeIndex] = lng;
-                _this.smokeAttributes.active.value[_this.smokeIndex] = 1.0;
+                _this.smokeAttributes.active.value[_this.smokeIndex] = (text.length > 0 ? 1.0 : 0.0);
                 _this.smokeAttributes.myStartTime.needsUpdate = true;
                 _this.smokeAttributes.myStartLat.needsUpdate = true;
                 _this.smokeAttributes.myStartLon.needsUpdate = true;
@@ -934,6 +960,8 @@ var ENCOM = (function(ENCOM, THREE, document){
             markerGeometry.verticesNeedUpdate = true;
         })
         .start();
+
+
 
 
     }
@@ -1147,6 +1175,7 @@ var ENCOM = (function(ENCOM, THREE, document){
 
     Globe.prototype.tick = function(){
         runPointAnimations.call(this);
+        addInitialData.call(this);
         TWEEN.update();
 
         if(!this.lastRenderDate){

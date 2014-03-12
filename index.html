@@ -7,6 +7,7 @@
         <script src="include/three.min.js"></script>
         <script src="include/tween.min.js"></script>
         <script src="include/pusher.color.js"></script>
+        <script src="data.js"></script>
         <script src="encom-globe.js"></script>
         <script src="http://code.jquery.com/jquery-2.0.3.min.js"></script>
 
@@ -16,7 +17,8 @@
             globe = new ENCOM.Globe({
                 font: "Inconsolata",
                 width: 1000,
-                height: 500
+                height: 800,
+                data: data
                 });
 
             function animate(){
@@ -36,7 +38,7 @@
 
                     globe.addMarker(lat,lng, name);
 
-                }, 2000);
+                }, 10000);
                 
                 /* add 6 satellites in random locations */
                 setTimeout(function(){
@@ -49,7 +51,7 @@
 
                 /* add the connected points that are in the movie */
                 setTimeout(function(){
-                    globe.addConnectedPoints(49.25, -123.1, "Vancouver", 35.68, 129.69, "Tokyo");
+                    globe.addConnectedPoints(49.25, -123.1, "Vancouver", 35.6895, 129.69171, "Tokyo");
                 }, 2000);
 
             }
