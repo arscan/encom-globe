@@ -1,0 +1,30 @@
+{
+  "name": "encom-globe",
+  "main": "encom-globe.js",
+  "version": "0.5.0",
+  "homepage": "https://github.com/arscan/encom-globe",
+  "authors": [
+    "Rob Scanlon <robscanlon@gmail.com>"
+  ],
+  "description": "WebGL globe based on the boardroom scene from Tron: Legacy",
+  "keywords": [
+    "webgl",
+    "tron",
+    "globe",
+    "geo",
+    "visualization"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies":{
+      "threejs": "r66",
+      "TweenJS": "release_v0.5.1"
+
+  }
+}
