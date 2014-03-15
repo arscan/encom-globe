@@ -20,11 +20,19 @@
     "node_modules",
     "bower_components",
     "test",
-    "tests"
+    "tests",
+    "include",
+    "bower.json",
+    "screenshot.jpg",
+    "styles.css",
+    "index.html",
+    "Gruntfile.js",
+    "data.js",
+    "package.json",
+    "README.md"
   ],
   "dependencies":{
       "threejs": "r66",
       "TweenJS": "release_v0.5.1"
-
   }
 }
