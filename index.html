@@ -16,10 +16,19 @@
 
             globe = new ENCOM.Globe({
                 font: "Inconsolata",
-                width: 1000,
-                height: 800,
+                width: 600,
+                height: 600,
                 data: data
                 });
+
+            function projectionToLatLng(width, height, x,y){
+
+                return {
+                    lat: 90 - 180*(y/height),
+                    lng: 360*(x/width)- 180,
+                };
+
+            }
 
             function animate(){
                 globe.tick();
@@ -27,6 +36,12 @@
             }
 
             function start(){
+                $("#projection").click(function(e){
+                    var offset = $(this).offset();
+                    var latLng = projectionToLatLng($("#projection").width(), $("#projection").height(), e.clientX - offset.left, e.clientY - offset.top);
+                    globe.addMarker(latLng.lat, latLng.lng, "");
+                });
+
                 animate();
 
                 /* add markers at random locations */
@@ -64,10 +79,8 @@
                     },
                     active: function(){
                         /* don't start the globe until the font has been loaded */
-
-
                         globe.init(start);
-                        $("#container").append(globe.domElement);
+                        $("#globe").append(globe.domElement);
                     }
                 };
 
@@ -80,12 +93,47 @@
                 var s = document.getElementsByTagName('script')[0];
                 s.parentNode.insertBefore(wf, s);
 
+
             });
+
         </script>
 
     </head>
     <body>
         <div id="container">
+            <div id="globe">
+            </div>
+            <div id="control-panel">
+                <div id ="realtime">
+                    <div class="header">ADD ELEMENTS</div>
+                    <div id="realtime-info">
+                        Allow people to enter in elements that they want in here.
+                        <ul>
+                            <li>Markers</li>
+                            <li>Satellite</li>
+                            <li>Connected Markers</li>
+                        </ul>
+
+                        <img id = "projection" src="resources/equirectangle_projection.png" />
+                    </div>
+                </div>
+                <div id ="params">
+                    <div class="header">CHANGE PARAMETERS</div>
+                    <div id="params-info">
+                        Allow users to change fundamental parameters.
+                        <ul>
+                            <li>colors</li>
+                            <li>satellites</li>
+                            <li>rotation speed</li>
+                            <li>intro animations</li>
+                            <li>height of markers, etc</li>
+                            <li>number of points</li>
+                            <li>font</li>
+                            <li>globe size</li>
+
+                    </div>
+                </div>
+            </div>
         </div>
     <body>
 </html>
