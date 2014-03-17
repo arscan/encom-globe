@@ -3,13 +3,20 @@
     <head>
         <meta charset="utf-8">
         <title>Encom Sphere</title>
+
+        <script src="http://code.jquery.com/jquery-2.0.3.min.js"></script>
+
+        <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+        <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css">
+        <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+
         <link href="styles.css" rel="stylesheet" type="text/css" />
+
         <script src="include/three.min.js"></script>
         <script src="include/tween.min.js"></script>
         <script src="include/pusher.color.js"></script>
         <script src="data.js"></script>
         <script src="encom-globe.js"></script>
-        <script src="http://code.jquery.com/jquery-2.0.3.min.js"></script>
 
         <script>
             var globe;
@@ -20,6 +27,10 @@
                 height: 600,
                 data: data
                 });
+
+            function roundNumber(num){
+                return Math.round(num * 100)/100;
+            }
 
             function projectionToLatLng(width, height, x,y){
 
@@ -36,10 +47,30 @@
             }
 
             function start(){
-                $("#projection").click(function(e){
-                    var offset = $(this).offset();
-                    var latLng = projectionToLatLng($("#projection").width(), $("#projection").height(), e.clientX - offset.left, e.clientY - offset.top);
-                    globe.addMarker(latLng.lat, latLng.lng, "");
+                $("#marker-projection").click(function(e){
+                    $(this).data("locked", true);
+                });
+
+                $("#marker-projection").mousemove(function(e){
+                    if(!$(this).data("locked")){
+                        var offset = $(this).offset();
+                        var latLng = projectionToLatLng($("#marker-projection").width(), $("#marker-projection").height(), e.clientX - offset.left, e.clientY - offset.top);
+                        $("#marker-lat").val(roundNumber(latLng.lat));
+                        $("#marker-lng").val(roundNumber(latLng.lng));
+                    }
+
+                });
+
+                $("#marker-projection").mouseout(function(e){
+                    if(!$(this).data("locked")){
+                        $("#marker-lat").val("");
+                        $("#marker-lng").val("");
+                    }
+                    $(this).data("locked", false);
+                });
+
+                $("#marker-go").click(function(){
+                    globe.addMarker($("#marker-lat").val(), $("#marker-lng").val(), $("#marker-name").val());
                 });
 
                 animate();
@@ -93,7 +124,6 @@
                 var s = document.getElementsByTagName('script')[0];
                 s.parentNode.insertBefore(wf, s);
 
-
             });
 
         </script>
@@ -107,14 +137,28 @@
                 <div id ="realtime">
                     <div class="header">ADD ELEMENTS</div>
                     <div id="realtime-info">
-                        Allow people to enter in elements that they want in here.
-                        <ul>
-                            <li>Markers</li>
-                            <li>Satellite</li>
-                            <li>Connected Markers</li>
-                        </ul>
+                        <div class="btn-group btn-group-justified" data-toggle="buttons-radio">
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-primary" id="marker-button">Markers</button>
+                            </div>
+                            <div class="btn-group">
 
-                        <img id = "projection" src="resources/equirectangle_projection.png" />
+                                <button type="button" class="btn btn-primary" id="connected-button">Connected Pt.</button>
+                            </div>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-primary" id="sat-button">Satellites</button>
+                            </div>
+                        </div>
+                        <div id="marker-input">
+                            <input type="text" class="form-control" id="marker-name" placeholder="Location Name (optional)" />
+                            <img id = "marker-projection" src="resources/equirectangle_projection.png" />
+                            <div class="input-group" id="marker-lat-lng">
+                                <input type="text" class="form-control" id="marker-lat" placeholder="Lat">
+                                <input type="text" class="form-control"  id="marker-lng" placeholder = "Lng">
+                                <button type="button" class="btn btn-default" id="marker-go">Go</button>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
                 <div id ="params">

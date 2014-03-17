@@ -5,10 +5,19 @@ body {
     background-color: #000000;
     font-family: 'Inconsolata', sans-serif;
     color: #fff;
-    font-size: 14px;
-
+    font-size: 12px;
 }
 
+.btn {
+    font-size: 10pt;
+    padding: 6px;
+}
+
+#marker-lat-lng *{
+    width:30%;
+    margin-right: 10px;
+
+}
 
 #container {
     width: 1900px;
@@ -66,7 +75,7 @@ body {
 
 }
 
-#projection {
+#marker-projection {
     width: 300px;
     border-radius: 3px;
     opacity: .5;
