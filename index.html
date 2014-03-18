@@ -19,9 +19,7 @@
         <script src="encom-globe.js"></script>
 
         <script>
-            var globe;
-
-            globe = new ENCOM.Globe({
+            var globe = new ENCOM.Globe({
                 font: "Inconsolata",
                 width: 600,
                 height: 600,
@@ -73,17 +71,49 @@
                     $("#satellite-lng").val(roundNumber(latLng.lng));
                     $(this).data("locked", true);
                 });
+                $("#connected-projection").click(function(e){
+                    var offset = $(this).offset();
+                    var latLng = projectionToLatLng($("#connected-projection").width(), $("#connected-projection").height(), e.clientX - offset.left, e.clientY - offset.top);
+                    if(!$(this).data("first")){
+                        $("#connected-1-lat").val(roundNumber(latLng.lat));
+                        $("#connected-1-lng").val(roundNumber(latLng.lng));
+                        $(this).data("first", true);
+                    } else if (!$(this).data("second")) {
+                        $("#connected-2-lat").val(roundNumber(latLng.lat));
+                        $("#connected-2-lng").val(roundNumber(latLng.lng));
+                        $(this).data("second", true);
+                    }
+                });
 
-                $("#connected-projection").mousemove(function(e){
+                $("#marker-projection").mousemove(function(e){
                     if(!$(this).data("locked")){
                         var offset = $(this).offset();
                         var latLng = projectionToLatLng($("#marker-projection").width(), $("#marker-projection").height(), e.clientX - offset.left, e.clientY - offset.top);
                         $("#marker-lat").val(roundNumber(latLng.lat));
                         $("#marker-lng").val(roundNumber(latLng.lng));
                     }
-
                 });
 
+                $("#satellite-projection").mousemove(function(e){
+                    if(!$(this).data("locked")){
+                        var offset = $(this).offset();
+                        var latLng = projectionToLatLng($("#satellite-projection").width(), $("#satellite-projection").height(), e.clientX - offset.left, e.clientY - offset.top);
+                        $("#satellite-lat").val(roundNumber(latLng.lat));
+                        $("#satellite-lng").val(roundNumber(latLng.lng));
+                    }
+                });
+
+                $("#connected-projection").mousemove(function(e){
+                    var offset = $(this).offset();
+                    var latLng = projectionToLatLng($("#connected-projection").width(), $("#connected-projection").height(), e.clientX - offset.left, e.clientY - offset.top);
+                    if(!$(this).data("first")){
+                        $("#connected-1-lat").val(roundNumber(latLng.lat));
+                        $("#connected-1-lng").val(roundNumber(latLng.lng));
+                    } else if(!$(this).data("second")){
+                        $("#connected-2-lat").val(roundNumber(latLng.lat));
+                        $("#connected-2-lng").val(roundNumber(latLng.lng));
+                    }
+                });
                 $("#marker-projection").mouseout(function(e){
                     if(!$(this).data("locked")){
                         $("#marker-lat").val("");
@@ -92,12 +122,35 @@
                     $(this).data("locked", false);
                 });
 
+                $("#satellite-projection").mouseout(function(e){
+                    if(!$(this).data("locked")){
+                        $("#satellite-lat").val("");
+                        $("#satellite-lng").val("");
+                    }
+                    $(this).data("locked", false);
+                });
+
+                $("#connected-projection").mouseout(function(e){
+                    if(!$(this).data("first")){
+                        $("#connected-1-lat").val("");
+                        $("#connected-1-lng").val("");
+                    } else if(!$(this).data("second")){
+                        $("#connected-2-lat").val("");
+                        $("#connected-2-lng").val("");
+                    }
+                    $(this).data("first", false);
+                    $(this).data("second", false);
+                });
+
                 $("#marker-go").click(function(){
                     globe.addMarker($("#marker-lat").val(), $("#marker-lng").val(), $("#marker-name").val());
                 });
 
                 $("#satellite-go").click(function(){
                     globe.addSatellite($("#satellite-lat").val(), $("#satellite-lng").val(), 1.3, true);
+                });
+                $("#connected-go").click(function(){
+                    globe.addConnectedPoints($("#connected-1-lat").val(), $("#connected-1-lng").val(), $("#connected-1-name").val(), $("#connected-2-lat").val(), $("#connected-2-lng").val(), $("#connected-2-name").val());
                 });
 
                 animate();
@@ -164,19 +217,6 @@
                 <div id ="realtime">
                     <div class="header">ADD ELEMENTS</div>
                     <div id="realtime-info">
-                        <!--
-                        <div class="btn-group btn-group-justified" data-toggle="buttons-radio">
-                            <div class="btn-group">
-                                <button type="button" class="btn btn-primary toggle-button" id="marker-button">Markers</button>
-                            </div>
-                            <div class="btn-group">
-                                <button type="button" class="btn btn-primary toggle-button" id="connected-button">Connected Pt.</button>
-                            </div>
-                            <div class="btn-group">
-                                <button type="button" class="btn btn-primary toggle-button" id="sat-button">Satellites</button>
-                            </div>
-                        </div>
-                        -->
                         <div class="btn-group btn-group-justified" data-toggle="buttons">
                             <label class="btn btn-primary active toggle-button" id="marker-button">
                                 <input type="radio" name="options" id="option1"> Markers
@@ -217,11 +257,10 @@
                                 <input type="text" class="form-control" id="connected-1-lat" placeholder="Lat">
                                 <input type="text" class="form-control"  id="connected-1-lng" placeholder = "Lng">
                                 <input type="text" class="form-control" id="connected-1-name" placeholder="Location Name (optional)" />
-
                                 <input type="text" class="form-control" id="connected-2-lat" placeholder="Lat">
                                 <input type="text" class="form-control"  id="connected-2-lng" placeholder = "Lng">
                                 <input type="text" class="form-control" id="connected-2-name" placeholder="Location Name (optional)" />
-                                <button type="button" class="btn btn-default" id="marker-go">Add Points</button>
+                                <button type="button" class="btn btn-default" id="connected-go">Add Points</button>
                             </div>
                         </div>
                     </div>

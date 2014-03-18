@@ -106,9 +106,6 @@ var ENCOM = (function(ENCOM, THREE, document){
             for(var lon = -180+lonoffset; lon < 180; lon += loninc){
                 var point = latLonToXY(width, height, lat, lon);
                 if(isPixelBlack(projectionContext,point.x, point.y, width, height)){
-                    // if(Math.random() < .01){
-                    //     console.log("{lat: " + lat + ",lng:" + lon + ",label:\"\"},");
-                    // }
                     cb({lat: lat, lon: lon});
                     points.push({lat: lat, lon: lon});
                 }
@@ -657,7 +654,6 @@ var ENCOM = (function(ENCOM, THREE, document){
         this.data.sort(function(a,b){return (b.lng - b.label.length * 2) - (a.lng - a.label.length * 2)});
 
         for(var i = 0; i< this.data.length; i++){
-            console.log(this.data[i]);
             var delay = this.swirlTime*((180+this.data[i].lng)/360.0); 
             this.data[i].when = delay + 100;
         }
@@ -970,6 +966,13 @@ var ENCOM = (function(ENCOM, THREE, document){
 
         var _this = this;
 
+        // fix the types if i can
+
+        lat1 = parseFloat(lat1);
+        lng1 = parseFloat(lng1);
+        lat2 = parseFloat(lat2);
+        lng2 = parseFloat(lng2);
+
         var point1 = mapPoint(lat1,lng1);
         var point2 = mapPoint(lat2,lng2);
 
@@ -1015,7 +1018,7 @@ var ENCOM = (function(ENCOM, THREE, document){
         var materialSpline = new THREE.LineBasicMaterial({
             color: 0xFFCC00,
             transparent: true,
-            linewidth: 2,
+            linewidth: 3,
             opacity: .5
         });
 
@@ -1074,7 +1077,6 @@ var ENCOM = (function(ENCOM, THREE, document){
 
                 currentVert2 = geometrySpline2.vertices[x];
                 currentPoint2 = mapPoint(nextSpot2.lat, nextSpot2.lon);
-
 
                 if(x >= nextSpot.index){
                     currentVert.set(currentPoint.x*1.2, currentPoint.y*1.2, currentPoint.z*1.2);
