@@ -47,11 +47,34 @@
             }
 
             function start(){
+                
+                $(".toggle-button").click(function(e){
+                    var _this = this;
+                    $("#" + $(this).attr("id").split("-")[0] + "-input").slideDown(500);
+                    $(".toggle-button").each(function(index, element){
+                        if(_this != element){
+                            $("#" + $(this).attr("id").split("-")[0] + "-input").slideUp(500);
+                            console.log("hi");
+                        }
+                    });
+
+                });
                 $("#marker-projection").click(function(e){
+                    var offset = $(this).offset();
+                    var latLng = projectionToLatLng($("#marker-projection").width(), $("#marker-projection").height(), e.clientX - offset.left, e.clientY - offset.top);
+                    $("#marker-lat").val(roundNumber(latLng.lat));
+                    $("#marker-lng").val(roundNumber(latLng.lng));
+                    $(this).data("locked", true);
+                });
+                $("#satellite-projection").click(function(e){
+                    var offset = $(this).offset();
+                    var latLng = projectionToLatLng($("#satellite-projection").width(), $("#satellite-projection").height(), e.clientX - offset.left, e.clientY - offset.top);
+                    $("#satellite-lat").val(roundNumber(latLng.lat));
+                    $("#satellite-lng").val(roundNumber(latLng.lng));
                     $(this).data("locked", true);
                 });
 
-                $("#marker-projection").mousemove(function(e){
+                $("#connected-projection").mousemove(function(e){
                     if(!$(this).data("locked")){
                         var offset = $(this).offset();
                         var latLng = projectionToLatLng($("#marker-projection").width(), $("#marker-projection").height(), e.clientX - offset.left, e.clientY - offset.top);
@@ -71,6 +94,10 @@
 
                 $("#marker-go").click(function(){
                     globe.addMarker($("#marker-lat").val(), $("#marker-lng").val(), $("#marker-name").val());
+                });
+
+                $("#satellite-go").click(function(){
+                    globe.addSatellite($("#satellite-lat").val(), $("#satellite-lng").val(), 1.3, true);
                 });
 
                 animate();
@@ -137,28 +164,66 @@
                 <div id ="realtime">
                     <div class="header">ADD ELEMENTS</div>
                     <div id="realtime-info">
+                        <!--
                         <div class="btn-group btn-group-justified" data-toggle="buttons-radio">
                             <div class="btn-group">
-                                <button type="button" class="btn btn-primary" id="marker-button">Markers</button>
+                                <button type="button" class="btn btn-primary toggle-button" id="marker-button">Markers</button>
                             </div>
                             <div class="btn-group">
-
-                                <button type="button" class="btn btn-primary" id="connected-button">Connected Pt.</button>
+                                <button type="button" class="btn btn-primary toggle-button" id="connected-button">Connected Pt.</button>
                             </div>
                             <div class="btn-group">
-                                <button type="button" class="btn btn-primary" id="sat-button">Satellites</button>
+                                <button type="button" class="btn btn-primary toggle-button" id="sat-button">Satellites</button>
                             </div>
                         </div>
+                        -->
+                        <div class="btn-group btn-group-justified" data-toggle="buttons">
+                            <label class="btn btn-primary active toggle-button" id="marker-button">
+                                <input type="radio" name="options" id="option1"> Markers
+                            </label>
+                            <label class="btn btn-primary toggle-button" id = "connected-button">
+                                <input type="radio" name="options" id="option2"> Connected Pt.
+                            </label>
+                            <label class="btn btn-primary toggle-button" id="satellite-button">
+                                <input type="radio" name="options" id="option3"> Satellites
+                            </label>
+                        </div>
                         <div id="marker-input">
-                            <input type="text" class="form-control" id="marker-name" placeholder="Location Name (optional)" />
-                            <img id = "marker-projection" src="resources/equirectangle_projection.png" />
+                            <img class="projection" id = "marker-projection" src="resources/equirectangle_projection.png" />
                             <div class="input-group" id="marker-lat-lng">
                                 <input type="text" class="form-control" id="marker-lat" placeholder="Lat">
                                 <input type="text" class="form-control"  id="marker-lng" placeholder = "Lng">
-                                <button type="button" class="btn btn-default" id="marker-go">Go</button>
+                            </div>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="marker-name" placeholder="Location Name (optional)" />
+                                <div class="input-group-btn">
+                                    <button type="button" class="btn btn-default" id="marker-go">Add Marker</button>
+                                </div>
                             </div>
                         </div>
+                        <div id="satellite-input">
+                            <img class="projection" id = "satellite-projection" src="resources/equirectangle_projection.png" />
+                            <div class="input-group" id="satellite-lat-lng">
+                                <input type="text" class="form-control" id="satellite-lat" placeholder="Lat">
+                                <input type="text" class="form-control"  id="satellite-lng" placeholder = "Lng">
+                                <div class="input-group-btn">
+                                    <button type="button" class="btn btn-default" id="satellite-go">Add Satellite</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="connected-input">
+                            <img class="projection" id = "connected-projection" src="resources/equirectangle_projection.png" />
+                            <div class="input-group" id="connected-lat-lng">
+                                <input type="text" class="form-control" id="connected-1-lat" placeholder="Lat">
+                                <input type="text" class="form-control"  id="connected-1-lng" placeholder = "Lng">
+                                <input type="text" class="form-control" id="connected-1-name" placeholder="Location Name (optional)" />
 
+                                <input type="text" class="form-control" id="connected-2-lat" placeholder="Lat">
+                                <input type="text" class="form-control"  id="connected-2-lng" placeholder = "Lng">
+                                <input type="text" class="form-control" id="connected-2-name" placeholder="Location Name (optional)" />
+                                <button type="button" class="btn btn-default" id="marker-go">Add Points</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div id ="params">

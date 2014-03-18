@@ -19,6 +19,20 @@ body {
 
 }
 
+#satellite-lat-lng input{
+    width:30%;
+    margin-right: 10px;
+
+}
+
+#satellite-input {
+    display: none;
+}
+
+#connected-input {
+    display: none;
+}
+
 #container {
     width: 1900px;
     height: 700px;
@@ -75,7 +89,7 @@ body {
 
 }
 
-#marker-projection {
+.projection {
     width: 300px;
     border-radius: 3px;
     opacity: .5;
