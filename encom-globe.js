@@ -452,6 +452,334 @@ var ENCOM = (function(ENCOM, THREE, document){
 
     };
 
+
+    var addBufferParticles = function(){
+
+        var pointVertexShader = [
+            "#define PI 3.141592653589793238462643",
+            "#define DISTANCE 500.0",
+            "attribute float myStartTime;",
+            "attribute float myStartLat;",
+            "attribute float myStartLon;",
+            "uniform float currentTime;",
+            "varying vec4 vColor;",
+            "",
+            "vec3 getPos(float lat, float lon)",
+            "{",
+            "if (lon < -180.0){",
+            "   lon = 180.0;",
+            "}",
+            "float phi = (90.0 - lat) * PI / 180.0;",
+            "float theta = (180.0 - lon) * PI / 180.0;",
+            "float x = DISTANCE * sin(phi) * cos(theta);",
+            "float y = DISTANCE * cos(phi);",
+            "float z = DISTANCE * sin(phi) * sin(theta);",
+            "return vec3(x, y, z);",
+            "}",
+            "",
+            "void main()",
+            "{",
+            "float opacity = 1.0;",
+            // "float cameraAngle = (2.0 * PI) / (20000.0/currentTime);",
+            // "float myAngle = (180.0-myStartLon) * PI / 180.0;",
+            // "float newOpacity = (cos(myAngle - cameraAngle - PI) + 1.0) / 2.0;",
+            // "opacity = (cos(myAngle - cameraAngle - PI) + 1.0)/2.0;",
+            // "float dt = currentTime - myStartTime;",
+            // "if (dt > 3000.0){",
+            // "opacity = 1.0;",
+            // "}",
+            "vColor = vec4( color, opacity );", //     set color associated to vertex; use later in fragment shader.
+            // // "vec4 mvPosition = modelViewMatrix * vec4( newPos, 1.0 );",
+            // "gl_PointSize = 2.5 - (dt / 1500.0);",
+            // "gl_Position = projectionMatrix * modelViewMatrix;",
+            "gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);",
+            "}"
+        ].join("\n");
+
+        var pointFragmentShader = [
+            "varying vec4 vColor;",     
+            "void main()", 
+            "{",
+            "float depth = gl_FragCoord.z / gl_FragCoord.w;",
+            "float fogFactor = smoothstep(" + (parseInt(this.cameraDistance)-200) +".0," + (parseInt(this.cameraDistance+275)) +".0, depth );",
+            "vec3 fogColor = vec3(0.0);",
+            "gl_FragColor = mix( vColor, vec4( fogColor, gl_FragColor.w ), fogFactor );",
+            "}"
+        ].join("\n");
+
+        var pointAttributes = {
+            myStartTime: {type: 'f', value: []},
+            myStartLat: {type: 'f', value: []},
+            myStartLon: {type: 'f', value: []}
+        };
+
+        this.pointUniforms = {
+            currentTime: { type: 'f', value: 0.0}
+            // color: { type: 'c', value: new THREE.Color("#ffcc00")},
+        }
+
+        var pointMaterial = new THREE.ShaderMaterial( {
+            uniforms:       this.pointUniforms,
+            attributes:     pointAttributes,
+            vertexShader:   pointVertexShader,
+            fragmentShader: pointFragmentShader,
+            transparent:    true,
+            vertexColors: THREE.VertexColors,
+            side: THREE.DoubleSide
+        });
+
+
+
+        // for(var i = 0; i< 2000; i++){
+        //     var vertex = new THREE.Vector3();
+        //     vertex.set(0,0,_this.cameraDistance+1);
+        //     _this.smokeParticleGeometry.vertices.push( vertex );
+        //     _this.smokeAttributes.myStartTime.value[i] = 0.0;
+        //     _this.smokeAttributes.myStartLat.value[i] = 0.0;
+        //     _this.smokeAttributes.myStartLon.value[i] = 0.0;
+        //     _this.smokeAttributes.active.value[i] = 0.0;
+        // }
+        // _this.smokeAttributes.myStartTime.needsUpdate = true;
+        // _this.smokeAttributes.myStartLat.needsUpdate = true;
+        // _this.smokeAttributes.myStartLon.needsUpdate = true;
+        // _this.smokeAttributes.active.needsUpdate = true;
+
+
+        this.scene.add( new THREE.AmbientLight( 0x444444 ) );
+
+        // var light1 = new THREE.DirectionalLight( 0xffffff, 0.5 );
+        // light1.position.set( 1, 1, 1 );
+        // this.scene.add( light1 );
+
+        // var light2 = new THREE.DirectionalLight( 0xffffff, 1.5 );
+        // light2.position.set( 0, -1, 0 );
+        // this.scene.add( light2 );
+
+        // var triangles = 160000;
+        var hexes = this.points.length;
+        var triangles = hexes * 4;
+
+        var geometry = new THREE.BufferGeometry();
+
+        geometry.addAttribute( 'index', Uint16Array, triangles * 3, 1 );
+        geometry.addAttribute( 'position', Float32Array, triangles * 3, 3 );
+        geometry.addAttribute( 'normal', Float32Array, triangles * 3, 3 );
+        geometry.addAttribute( 'color', Float32Array, triangles * 3, 3 );
+
+        var myColors1 = pusher.color('#ffcc00').hueSet();
+        var myColors = [];
+        for(var i = 0; i< myColors1.length; i++){
+            // myColors.push(myColors1[i]);
+            myColors.push(myColors1[i].shade(.4 + Math.random()/2.0));
+            myColors.push(myColors1[i].shade(.4 + Math.random()/2.0));
+        }
+
+        // break geometry into
+        // chunks of 21,845 triangles (3 unique vertices per triangle)
+        // for indices to fit into 16 bit integer number
+        // floor(2^16 / 3) = 21845
+
+        var chunkSize = 21845;
+
+        var indices = geometry.attributes.index.array;
+
+        for ( var i = 0; i < indices.length; i ++ ) {
+
+            indices[ i ] = i % ( 3 * chunkSize );
+
+        }
+
+        var positions = geometry.attributes.position.array;
+        var normals = geometry.attributes.normal.array;
+        var colors = geometry.attributes.color.array;
+
+        var n = 800, n2 = n/2;  // triangles spread in the cube
+        var d = 12, d2 = d/2;   // individual triangle size
+
+        var pA = new THREE.Vector3();
+        var pB = new THREE.Vector3();
+        var pC = new THREE.Vector3();
+
+        var cb = new THREE.Vector3();
+        var ab = new THREE.Vector3();
+
+        var addTriangle = function(k, ax, ay, az, bx, by, bz, cx, cy, cz, lat, lng, color){
+            var i = k * 9;
+
+            positions[ i ]     = ax;
+            positions[ i + 1 ] = ay;
+            positions[ i + 2 ] = az;
+
+            positions[ i + 3 ] = bx;
+            positions[ i + 4 ] = by;
+            positions[ i + 5 ] = bz;
+
+            positions[ i + 6 ] = cx;
+            positions[ i + 7 ] = cy;
+            positions[ i + 8 ] = cz;
+
+            // flat face normals
+
+            pA.set( ax, ay, az );
+            pB.set( bx, by, bz );
+            pC.set( cx, cy, cz );
+
+            cb.subVectors( pC, pB );
+            ab.subVectors( pA, pB );
+            cb.cross( ab );
+
+            cb.normalize();
+
+            var nx = cb.x;
+            var ny = cb.y;
+            var nz = cb.z;
+
+            normals[ i ]     = nx;
+            normals[ i + 1 ] = ny;
+            normals[ i + 2 ] = nz;
+
+            normals[ i + 3 ] = nx;
+            normals[ i + 4 ] = ny;
+            normals[ i + 5 ] = nz;
+
+            normals[ i + 6 ] = nx;
+            normals[ i + 7 ] = ny;
+            normals[ i + 8 ] = nz;
+
+            // colors
+
+            // var vx = ( ax / n ) + 0.5;
+            // var vy = ( ay / n ) + 0.5;
+            // var vz = ( az / n ) + 0.5;
+
+            // color.setRGB( vx, vy, vz );
+
+            var colorIndex = Math.floor(Math.random()*myColors.length);
+
+            var colorRGB = myColors[colorIndex].rgb();
+
+            // console.log(colorRGB);
+
+            // color.setRGB(colorRGB[0], colorRGB[1], colorRGB[2]);
+            // color.setRGB(colorRGB[0]/256.0, colorRGB[1]/256.0, colorRGB[2]/256.0);//colorRGB[0], colorRGB[1], colorRGB[2]);
+            
+            
+
+            // colors[i] = colorRGB[0];
+            // colors[ i + 1 ] = colorRGB[1];
+            // colors[ i + 2 ] = colorRGB[2];
+
+            // colors[ i + 3 ] = colorRGB[0];
+            // colors[ i + 4 ] = colorRGB[1];
+            // colors[ i + 5 ] = colorRGB[2];
+
+            // colors[ i + 6 ] = colorRGB[0];
+            // colors[ i + 7 ] = colorRGB[1];
+            // colors[ i + 8 ] = colorRGB[2];
+
+            colors[ i ]     = color.r;
+            colors[ i + 1 ] = color.g;
+            colors[ i + 2 ] = color.b;
+
+            colors[ i + 3 ] = color.r;
+            colors[ i + 4 ] = color.g;
+            colors[ i + 5 ] = color.b;
+
+            colors[ i + 6 ] = color.r;
+            colors[ i + 7 ] = color.g;
+            colors[ i + 8 ] = color.b;
+
+            for(var ii = 0; ii < 9; ii++){
+                pointAttributes.myStartTime.value[i + ii] = 0.0;
+                pointAttributes.myStartLat.value[i + ii] = lat;
+                pointAttributes.myStartLon.value[i + ii] = lng;
+            }
+
+        };
+
+        pointAttributes.myStartTime.needsUpdate = true;
+        pointAttributes.myStartLat.needsUpdate = true;
+        pointAttributes.myStartLon.needsUpdate = true;
+
+        addHex = function(i, lat, lng){
+            var k = i * 4;
+            var C = .6;
+            var B = .866*C;
+            var A = C/2;
+
+            // var p1a = 0;
+            // var p1b = B;
+            // var p2a = A;
+            // var p2b = 0;
+            // var p3a = A+C;
+            // var p3b = 0;
+            // var p4a = 2*C;
+            // var p4b = B;
+            // var p5a = A+C;
+            // var p5b = 2*B;
+            // var p6a = A;
+            // var p6b = 2*B;
+
+            var p1 = mapPoint(lat + 0, lng + A + C, 500);
+            var p2 = mapPoint(lat + 0, lng + A, 500);
+            var p3 = mapPoint(lat + B, lng + 0, 500);
+            var p4 = mapPoint(lat + 2*B, lng + A, 500);
+            var p5 = mapPoint(lat + 2*B, lng + A + C, 500);
+            var p6 = mapPoint(lat + B, lng + 2*C, 500);
+
+            var colorIndex = Math.floor(Math.random()*myColors.length);
+            var colorRGB = myColors[colorIndex].rgb();
+            var color = new THREE.Color();
+            color.setRGB(colorRGB[0]/256.0, colorRGB[1]/256.0, colorRGB[2]/256.0);//colorRGB[0], colorRGB[1], colorRGB[2]);
+
+            addTriangle(k+3, p4.x, p4.y, p4.z, p3.x, p3.y, p3.z, p5.x, p5.y, p5.z, lat, lng, color);
+            addTriangle(k+2, p3.x, p3.y, p3.z, p6.x, p6.y, p6.z, p5.x, p5.y, p5.z, lat, lng, color);
+            addTriangle(k+1, p2.x, p2.y, p2.z, p6.x, p6.y, p6.z, p3.x, p3.y, p3.z, lat, lng, color);
+            addTriangle(k, p1.x, p1.y, p1.z, p2.x, p2.y, p2.z, p6.x, p6.y, p6.z, lat, lng, color);
+            
+        }
+
+        for(i = 0; i < this.points.length; i++){
+            // var point = mapPoint(this.points[i].lat, this.points[i].lon, 500);
+
+            addHex(i, this.points[i].lat, this.points[i].lon);
+
+        }
+
+        geometry.offsets = [];
+
+        var offsets = triangles / chunkSize;
+
+        for ( var i = 0; i < offsets; i ++ ) {
+
+            var offset = {
+                start: i * chunkSize * 3,
+                index: i * chunkSize * 3,
+                count: Math.min( triangles - ( i * chunkSize ), chunkSize ) * 3
+            };
+
+            geometry.offsets.push( offset );
+
+        }
+
+        geometry.computeBoundingSphere();
+
+
+        var material = new THREE.MeshPhongMaterial( {
+            color: 0xaaaaaa, ambient: 0xaaaaaa, specular: 0xffffff, shininess: 250,
+            side: THREE.DoubleSide, vertexColors: THREE.VertexColors
+        } );
+
+        // var material = new THREE.ShaderMaterial({
+
+        // });
+
+        mesh = new THREE.Mesh( geometry, pointMaterial );
+        this.scene.add( mesh );
+
+
+    };
+
     var swirls = function(){
         var geometrySpline;
         var sPoint;
@@ -649,6 +977,9 @@ var ENCOM = (function(ENCOM, THREE, document){
         this.renderer = new THREE.WebGLRenderer( { antialias: true } );
         this.renderer.setSize( this.width, this.height);
 
+        this.renderer.gammaInput = true;
+        this.renderer.gammaOutput = true;
+
         this.domElement = this.renderer.domElement;
 
         this.data.sort(function(a,b){return (b.lng - b.label.length * 2) - (a.lng - a.label.length * 2)});
@@ -687,9 +1018,9 @@ var ENCOM = (function(ENCOM, THREE, document){
                     for (var i = 0; i< _this.samples.length; i++){
 
                         samplePoints(projectionContext,img.width, img.height, _this.samples[i].offsetLat, _this.samples[i].offsetLon, _this.samples[i].incLat, _this.samples[i].incLon, function(point){
-                            if((point.lat > -60 || Math.random() > .9) && Math.random()>.2){ // thin it out (especially antartica)
+                            // if((point.lat > -60 || Math.random() > .9) && Math.random()>.2){ // thin it out (especially antartica)
                                 _this.points.push(point);
-                            }
+                            // }
                         });
                     }
                     document.body.removeChild(projectionCanvas);
@@ -697,7 +1028,7 @@ var ENCOM = (function(ENCOM, THREE, document){
 
                     // create the camera
 
-                    _this.camera = new THREE.PerspectiveCamera( 50, _this.width / _this.height, 1, _this.cameraDistance + 275 );
+                    _this.camera = new THREE.PerspectiveCamera( 50, _this.width / _this.height, 1, _this.cameraDistance + 250 );
                     _this.camera.position.z = _this.cameraDistance;
 
                     _this.cameraAngle=(Math.PI * 2) * .5;
@@ -706,10 +1037,7 @@ var ENCOM = (function(ENCOM, THREE, document){
 
                     _this.scene = new THREE.Scene();
 
-                    _this.scene.fog = new THREE.Fog( 0x000000, _this.cameraDistance-200, _this.cameraDistance+275 );
-
-                    // add the globe particles
-                    mainParticles.call(_this);
+                    _this.scene.fog = new THREE.Fog( 0x000000, _this.cameraDistance-200, _this.cameraDistance+250 );
 
                     // add the swirls
                     swirls.call(_this);
@@ -821,6 +1149,7 @@ var ENCOM = (function(ENCOM, THREE, document){
                     var particleSystem = new THREE.ParticleSystem( _this.smokeParticleGeometry, _this.smokeMaterial);
 
                     _this.scene.add( particleSystem);
+                    addBufferParticles.call(_this);
 
                     cb();
                 }
@@ -1228,6 +1557,7 @@ var ENCOM = (function(ENCOM, THREE, document){
         // do the particles
 
         this.smokeUniforms.currentTime.value = this.totalRunTime;
+        this.pointUniforms.currentTime.value = this.totalRunTime;
 
         this.camera.lookAt( this.scene.position );
         this.renderer.render( this.scene, this.camera );
