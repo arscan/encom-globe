@@ -849,39 +849,35 @@ var ENCOM = (function(ENCOM, THREE, document){
                         "",
                         "vec3 getPos(float lat, float lon)",
                         "{",
-                        "if (lon < -180.0){",
-                        "   lon = 180.0;",
-                        "}",
-                        "float phi = (90.0 - lat) * PI / 180.0;",
-                        "float theta = (180.0 - lon) * PI / 180.0;",
-                        "float x = DISTANCE * sin(phi) * cos(theta);",
-                        "float y = DISTANCE * cos(phi);",
-                        "float z = DISTANCE * sin(phi) * sin(theta);",
-                        "return vec3(x, y, z);",
+                        "   if (lon < -180.0){",
+                        "      lon = lon + 360.0;",
+                        "   }",
+                        "   float phi = (90.0 - lat) * PI / 180.0;",
+                        "   float theta = (180.0 - lon) * PI / 180.0;",
+                        "   float x = DISTANCE * sin(phi) * cos(theta);",
+                        "   float y = DISTANCE * cos(phi);",
+                        "   float z = DISTANCE * sin(phi) * sin(theta);",
+                        "   return vec3(x, y, z);",
                         "}",
                         "",
                         "void main()",
                         "{",
-                        "float dt = currentTime - myStartTime;",
-                        "if (dt < 0.0){",
-                        "dt = 0.0;",
-                        "}",
-                        "if (dt > 0.0 && active > 0.0) {",
-                        "dt = mod(dt,1500.0);",
-                        "}",
-                        "float opacity = 1.0 - dt/ 1500.0;",
-                        "if (dt == 0.0 || active == 0.0){",
-                        "opacity = 0.0;",
-                        "}",
-                        "float cameraAngle = (2.0 * PI) / (20000.0/currentTime);",
-                        "float myAngle = (180.0-myStartLon) * PI / 180.0;",
-                        "opacity = opacity * (cos(myAngle - cameraAngle - PI) + 1.0)/2.0;",
-                        "float newPosRaw = myStartLon - (dt / 50.0);",
-                        "vec3 newPos = getPos(myStartLat, myStartLon - ( dt / 50.0));",
-                        "vColor = vec4( color, opacity );", //     set color associated to vertex; use later in fragment shader.
-                        "vec4 mvPosition = modelViewMatrix * vec4( newPos, 1.0 );",
-                        "gl_PointSize = 2.5 - (dt / 1500.0);",
-                        "gl_Position = projectionMatrix * mvPosition;",
+                        "   float dt = currentTime - myStartTime;",
+                        "   if (dt < 0.0){",
+                        "      dt = 0.0;",
+                        "   }",
+                        "   if (dt > 0.0 && active > 0.0) {",
+                        "      dt = mod(dt,1500.0);",
+                        "   }",
+                        "   float opacity = 1.0 - dt/ 1500.0;",
+                        "   if (dt == 0.0 || active == 0.0){",
+                        "      opacity = 0.0;",
+                        "   }",
+                        "   vec3 newPos = getPos(myStartLat, myStartLon - ( dt / 50.0));",
+                        "   vColor = vec4( color, opacity );", //     set color associated to vertex; use later in fragment shader.
+                        "   vec4 mvPosition = modelViewMatrix * vec4( newPos, 1.0 );",
+                        "   gl_PointSize = 2.5 - (dt / 1500.0);",
+                        "   gl_Position = projectionMatrix * mvPosition;",
                         "}"
                     ].join("\n");
 
@@ -889,7 +885,10 @@ var ENCOM = (function(ENCOM, THREE, document){
                         "varying vec4 vColor;",     
                         "void main()", 
                         "{",
-                        "gl_FragColor = vColor;",
+                        "   float depth = gl_FragCoord.z / gl_FragCoord.w;",
+                        "   float fogFactor = smoothstep(" + (parseInt(_this.cameraDistance)-200) +".0," + (parseInt(_this.cameraDistance+375)) +".0, depth );",
+                        "   vec3 fogColor = vec3(0.0);",
+                        "   gl_FragColor = mix( vColor, vec4( fogColor, gl_FragColor.w ), fogFactor );",
                         "}"
                     ].join("\n");
 
@@ -1066,9 +1065,6 @@ var ENCOM = (function(ENCOM, THREE, document){
         })
         .start();
 
-
-
-
     }
 
     Globe.prototype.addConnectedPoints = function(lat1, lng1, text1, lat2, lng2, text2){
@@ -1205,7 +1201,6 @@ var ENCOM = (function(ENCOM, THREE, document){
 
         this.scene.add(new THREE.Line(geometrySpline, materialSpline));
         this.scene.add(new THREE.Line(geometrySpline2, materialSpline2, THREE.LinePieces));
-
     }
 
 
@@ -1318,7 +1313,6 @@ var ENCOM = (function(ENCOM, THREE, document){
             mesh.rotateZ(mesh.tiltDirection * Math.PI/2);
             mesh.rotateZ(Math.sin(this.cameraAngle + (mesh.lon / 180) * Math.PI) * mesh.tiltMultiplier * mesh.tiltDirection * -1);
 
-
         }
 
         if(this.swirlTime > this.totalRunTime){
@@ -1333,10 +1327,9 @@ var ENCOM = (function(ENCOM, THREE, document){
         } else if(this.swirl){
             this.scene.remove(this.swirl);
             delete[this.swirl];
-
         }
 
-        // do the particles
+        // do the shaders
 
         this.smokeUniforms.currentTime.value = this.totalRunTime;
         this.pointUniforms.currentTime.value = this.totalRunTime;
