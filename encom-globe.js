@@ -370,36 +370,24 @@ var ENCOM = (function(ENCOM, THREE, document){
             "attribute float lng;",
             "uniform float currentTime;",
             "varying vec4 vColor;",
-            "vec3 getPos(float lat, float lon)",
-            "{",
-            "if (lon < -180.0){",
-            "   lon = 180.0;",
-            "}",
-            "float phi = (90.0 - lat) * PI / 180.0;",
-            "float theta = (180.0 - lon) * PI / 180.0;",
-            "float x = DISTANCE * sin(phi) * cos(theta);",
-            "float y = DISTANCE * cos(phi);",
-            "float z = DISTANCE * sin(phi) * sin(theta);",
-            "return vec3(x, y, z);",
-            "}",
             "",
             "void main()",
             "{",
-            // var delay = this.swirlTime*((180+this.points[i].lon)/360.0); 
-            "vec3 newPos = position;",
-            "float opacity = 0.0;",
-            "float introStart = INTRODURATION * ((180.0 + lng)/360.0);",
-            "if(currentTime > introStart){",
-            "opacity = 1.0;",
-            "}",
-            "if(currentTime > introStart && currentTime < introStart + 400.0){",
-            "newPos = position * INTRODISTANCE;",
-            "}",
-            "if(currentTime > introStart + 400.0 && currentTime < introStart + 600.0){",
-            "newPos = position * (1.0 + ((INTRODISTANCE-1.0) * (1.0-(currentTime - introStart-400.0)/200.0)));",
-            "}",
-            "vColor = vec4( color, opacity );", //     set color associated to vertex; use later in fragment shader.
-            "gl_Position = projectionMatrix * modelViewMatrix * vec4(newPos, 1.0);",
+            "   vec3 newPos = position;",
+            "   float opacity = 0.0;",
+            "   float introStart = INTRODURATION * ((180.0 + lng)/360.0);",
+            "   if(currentTime > introStart){",
+            "      opacity = 1.0;",
+            "   }",
+            "   if(currentTime > introStart && currentTime < introStart + 400.0){",
+            "      newPos = position * INTRODISTANCE;",
+            "      opacity = .2;",
+            "   }",
+            "   if(currentTime > introStart + 400.0 && currentTime < introStart + 600.0){",
+            "      newPos = position * (1.0 + ((INTRODISTANCE-1.0) * (1.0-(currentTime - introStart-400.0)/200.0)));",
+            "   }",
+            "   vColor = vec4( color, opacity );", //     set color associated to vertex; use later in fragment shader.
+            "   gl_Position = projectionMatrix * modelViewMatrix * vec4(newPos, 1.0);",
             "}"
         ].join("\n");
 
@@ -407,10 +395,10 @@ var ENCOM = (function(ENCOM, THREE, document){
             "varying vec4 vColor;",     
             "void main()", 
             "{",
-            "float depth = gl_FragCoord.z / gl_FragCoord.w;",
-            "float fogFactor = smoothstep(" + (parseInt(this.cameraDistance)-200) +".0," + (parseInt(this.cameraDistance+275)) +".0, depth );",
-            "vec3 fogColor = vec3(0.0);",
-            "gl_FragColor = mix( vColor, vec4( fogColor, gl_FragColor.w ), fogFactor );",
+            "   float depth = gl_FragCoord.z / gl_FragCoord.w;",
+            "   float fogFactor = smoothstep(" + (parseInt(this.cameraDistance)-200) +".0," + (parseInt(this.cameraDistance+375)) +".0, depth );",
+            "   vec3 fogColor = vec3(0.0);",
+            "   gl_FragColor = mix( vColor, vec4( fogColor, gl_FragColor.w ), fogFactor );",
             "}"
         ].join("\n");
 
@@ -420,7 +408,6 @@ var ENCOM = (function(ENCOM, THREE, document){
 
         this.pointUniforms = {
             currentTime: { type: 'f', value: 0.0}
-            // color: { type: 'c', value: new THREE.Color("#ffcc00")},
         }
 
         var pointMaterial = new THREE.ShaderMaterial( {
@@ -433,17 +420,6 @@ var ENCOM = (function(ENCOM, THREE, document){
             side: THREE.DoubleSide
         });
 
-        this.scene.add( new THREE.AmbientLight( 0x444444 ) );
-
-        // var light1 = new THREE.DirectionalLight( 0xffffff, 0.5 );
-        // light1.position.set( 1, 1, 1 );
-        // this.scene.add( light1 );
-
-        // var light2 = new THREE.DirectionalLight( 0xffffff, 1.5 );
-        // light2.position.set( 0, -1, 0 );
-        // this.scene.add( light2 );
-
-        // var triangles = 160000;
         var hexes = this.points.length;
         var triangles = hexes * 4;
 
@@ -455,17 +431,13 @@ var ENCOM = (function(ENCOM, THREE, document){
         geometry.addAttribute( 'color', Float32Array, triangles * 3, 3 );
         geometry.addAttribute( 'lng', Float32Array, triangles * 3, 1 );
 
-        lng_values = geometry.attributes.lng.array;
+        var lng_values = geometry.attributes.lng.array;
         
 
-        var myColors1 = pusher.color('#ffcc00').hueSet();
+        var baseColorSet = pusher.color(this.baseColor).hueSet();
         var myColors = [];
-        // var baseColor = pusher.color('#ffcc00');
-        // for(var i = 0; i< 10; i++){
-        //     myColors.push(baseColor.shade(i/10));
-        // }
-        for(var i = 0; i< myColors1.length; i++){
-            myColors.push(myColors1[i].shade(Math.random()/3.0));
+        for(var i = 0; i< baseColorSet.length; i++){
+            myColors.push(baseColorSet[i].shade(Math.random()/3.0));
         }
 
         // break geometry into
@@ -477,6 +449,8 @@ var ENCOM = (function(ENCOM, THREE, document){
 
         var indices = geometry.attributes.index.array;
 
+        console.log(indices.length);
+
         for ( var i = 0; i < indices.length; i ++ ) {
 
             indices[ i ] = i % ( 3 * chunkSize );
@@ -484,7 +458,6 @@ var ENCOM = (function(ENCOM, THREE, document){
         }
 
         var positions = geometry.attributes.position.array;
-        var normals = geometry.attributes.normal.array;
         var colors = geometry.attributes.color.array;
 
         var n = 800, n2 = n/2;  // triangles spread in the cube
@@ -501,6 +474,8 @@ var ENCOM = (function(ENCOM, THREE, document){
         var addTriangle = function(k, ax, ay, az, bx, by, bz, cx, cy, cz, lat, lng, color){
             var p = k * 3;
             var i = p * 3;
+            var colorIndex = Math.floor(Math.random()*myColors.length);
+            var colorRGB = myColors[colorIndex].rgb();
 
             lng_values[p] = lng;
             lng_values[p+1] = lng;
@@ -518,38 +493,6 @@ var ENCOM = (function(ENCOM, THREE, document){
             positions[ i + 7 ] = cy;
             positions[ i + 8 ] = cz;
 
-            // flat face normals
-
-            pA.set( ax, ay, az );
-            pB.set( bx, by, bz );
-            pC.set( cx, cy, cz );
-
-            cb.subVectors( pC, pB );
-            ab.subVectors( pA, pB );
-            cb.cross( ab );
-
-            cb.normalize();
-
-            var nx = cb.x;
-            var ny = cb.y;
-            var nz = cb.z;
-
-            normals[ i ]     = nx;
-            normals[ i + 1 ] = ny;
-            normals[ i + 2 ] = nz;
-
-            normals[ i + 3 ] = nx;
-            normals[ i + 4 ] = ny;
-            normals[ i + 5 ] = nz;
-
-            normals[ i + 6 ] = nx;
-            normals[ i + 7 ] = ny;
-            normals[ i + 8 ] = nz;
-
-            var colorIndex = Math.floor(Math.random()*myColors.length);
-
-            var colorRGB = myColors[colorIndex].rgb();
-
             colors[ i ]     = color.r;
             colors[ i + 1 ] = color.g;
             colors[ i + 2 ] = color.b;
@@ -564,24 +507,11 @@ var ENCOM = (function(ENCOM, THREE, document){
 
         };
 
-        addHex = function(i, lat, lng){
+        var addHex = function(i, lat, lng){
             var k = i * 4;
             var C = Math.random()*.25 + .25;
             var B = .866*C;
             var A = C/2;
-
-            // var p1a = 0;
-            // var p1b = B;
-            // var p2a = A;
-            // var p2b = 0;
-            // var p3a = A+C;
-            // var p3b = 0;
-            // var p4a = 2*C;
-            // var p4b = B;
-            // var p5a = A+C;
-            // var p5b = 2*B;
-            // var p6a = A;
-            // var p6b = 2*B;
 
             var p1 = mapPoint(lat + 0 - B, lng + A + C - B, 500);
             var p2 = mapPoint(lat + 0 - B, lng + A - B, 500);
@@ -593,20 +523,18 @@ var ENCOM = (function(ENCOM, THREE, document){
             var colorIndex = Math.floor(Math.random()*myColors.length);
             var colorRGB = myColors[colorIndex].rgb();
             var color = new THREE.Color();
-            color.setRGB(colorRGB[0]/256.0, colorRGB[1]/256.0, colorRGB[2]/256.0);//colorRGB[0], colorRGB[1], colorRGB[2]);
 
-            addTriangle(k+3, p4.x, p4.y, p4.z, p3.x, p3.y, p3.z, p5.x, p5.y, p5.z, lat, lng, color);
-            addTriangle(k+2, p3.x, p3.y, p3.z, p6.x, p6.y, p6.z, p5.x, p5.y, p5.z, lat, lng, color);
-            addTriangle(k+1, p2.x, p2.y, p2.z, p6.x, p6.y, p6.z, p3.x, p3.y, p3.z, lat, lng, color);
+            color.setRGB(colorRGB[0]/255.0, colorRGB[1]/255.0, colorRGB[2]/255.0);
+
             addTriangle(k, p1.x, p1.y, p1.z, p2.x, p2.y, p2.z, p6.x, p6.y, p6.z, lat, lng, color);
+            addTriangle(k+1, p2.x, p2.y, p2.z, p6.x, p6.y, p6.z, p3.x, p3.y, p3.z, lat, lng, color);
+            addTriangle(k+2, p3.x, p3.y, p3.z, p6.x, p6.y, p6.z, p5.x, p5.y, p5.z, lat, lng, color);
+            addTriangle(k+3, p4.x, p4.y, p4.z, p3.x, p3.y, p3.z, p5.x, p5.y, p5.z, lat, lng, color);
             
         }
 
         for(i = 0; i < this.points.length; i++){
-            // var point = mapPoint(this.points[i].lat, this.points[i].lon, 500);
-
             addHex(i, this.points[i].lat, this.points[i].lon);
-
         }
 
         geometry.offsets = [];
@@ -627,19 +555,8 @@ var ENCOM = (function(ENCOM, THREE, document){
 
         geometry.computeBoundingSphere();
 
-
-        var material = new THREE.MeshPhongMaterial( {
-            color: 0xaaaaaa, ambient: 0xaaaaaa, specular: 0xffffff, shininess: 250,
-            side: THREE.DoubleSide, vertexColors: THREE.VertexColors
-        } );
-
-        // var material = new THREE.ShaderMaterial({
-
-        // });
-
         mesh = new THREE.Mesh( geometry, pointMaterial );
         this.scene.add( mesh );
-
 
     };
 
@@ -792,6 +709,8 @@ var ENCOM = (function(ENCOM, THREE, document){
             width: document.width,
             height: document.height,
             font: "Inconsolata",
+            baseColor: "#ffcc00",
+            thinAntarctica: .001, // you can't really see it on the map anyhow
             mapUrl: "resources/equirectangle_projection.png",
             size: 100,
             swirlMultiplier: 1.15,
@@ -825,7 +744,6 @@ var ENCOM = (function(ENCOM, THREE, document){
             data: []
 
         };
-
 
         this.smokeIndex = 0;
 
@@ -881,9 +799,9 @@ var ENCOM = (function(ENCOM, THREE, document){
                     for (var i = 0; i< _this.samples.length; i++){
 
                         samplePoints(projectionContext,img.width, img.height, _this.samples[i].offsetLat, _this.samples[i].offsetLon, _this.samples[i].incLat, _this.samples[i].incLon, function(point){
-                            // if((point.lat > -60 || Math.random() > .9) && Math.random()>.2){ // thin it out (especially antartica)
+                            if(point.lat > -60 || Math.random() < _this.thinAntarctica){
                                 _this.points.push(point);
-                            // }
+                            }
                         });
                     }
                     document.body.removeChild(projectionCanvas);
