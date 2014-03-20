@@ -126,37 +126,6 @@ var ENCOM = (function(ENCOM, THREE, document){
         return {x: x, y: y, z:z};
     }
 
-    var addPointAnimation = function(when, verticleIndex, position){
-        var pCount = this.globe_pointAnimations.length-1;
-        while(pCount > 0 && this.globe_pointAnimations[pCount].when < when){
-            pCount--;
-        }
-        this.globe_pointAnimations.splice(pCount+1,0, {when: when, verticleIndex: verticleIndex, position: position});
-    };
-
-    var runPointAnimations = function(){
-        var next;
-        if(!this.firstRunTime){
-            this.firstRunTime = Date.now();
-        }
-
-        if(this.globe_pointAnimations.length == 0){
-            return;
-        }
-
-        while(this.globe_pointAnimations.length > 0 && this.firstRunTime + (next = this.globe_pointAnimations.pop()).when < Date.now()){
-            this.globe_particles.geometry.vertices[next.verticleIndex].x = next.position.x;
-            this.globe_particles.geometry.vertices[next.verticleIndex].y = next.position.y;
-            this.globe_particles.geometry.vertices[next.verticleIndex].z = next.position.z;
-
-            this.globe_particles.geometry.verticesNeedUpdate = true;
-        }
-        if(this.firstRunTime + next.when >= Date.now()){
-            this.globe_pointAnimations.push(next);
-        }
-
-    };
-
     var addInitialData = function(){
         if(this.data.length == 0){
             return;
@@ -433,12 +402,6 @@ var ENCOM = (function(ENCOM, THREE, document){
                         z : point.z*(this.swirlMultiplier - (.1 + a/40.0))});
                 }
 
-                addPointAnimation.call(this,delay + 690, i, {
-                    x : point.x,
-                    y : point.y,
-                    z : point.z});
-
-                    colors[i] = new THREE.Color( myColors[Math.floor(Math.random() * myColors.length)].hex6());
 
         }
 
@@ -458,12 +421,11 @@ var ENCOM = (function(ENCOM, THREE, document){
         var pointVertexShader = [
             "#define PI 3.141592653589793238462643",
             "#define DISTANCE 500.0",
-            "attribute float myStartTime;",
-            "attribute float myStartLat;",
-            "attribute float myStartLon;",
+            "#define INTRODURATION " + (parseFloat(this.swirlTime) + .00001),
+            "#define INTRODISTANCE " + (parseFloat(this.swirlMultiplier) + .00001),
+            "attribute float lng;",
             "uniform float currentTime;",
             "varying vec4 vColor;",
-            "",
             "vec3 getPos(float lat, float lon)",
             "{",
             "if (lon < -180.0){",
@@ -479,20 +441,21 @@ var ENCOM = (function(ENCOM, THREE, document){
             "",
             "void main()",
             "{",
-            "float opacity = 1.0;",
-            // "float cameraAngle = (2.0 * PI) / (20000.0/currentTime);",
-            // "float myAngle = (180.0-myStartLon) * PI / 180.0;",
-            // "float newOpacity = (cos(myAngle - cameraAngle - PI) + 1.0) / 2.0;",
-            // "opacity = (cos(myAngle - cameraAngle - PI) + 1.0)/2.0;",
-            // "float dt = currentTime - myStartTime;",
-            // "if (dt > 3000.0){",
-            // "opacity = 1.0;",
-            // "}",
+            // var delay = this.swirlTime*((180+this.points[i].lon)/360.0); 
+            "vec3 newPos = position;",
+            "float opacity = 0.0;",
+            "float introStart = INTRODURATION * ((180.0 + lng)/360.0);",
+            "if(currentTime > introStart){",
+            "opacity = 1.0;",
+            "}",
+            "if(currentTime > introStart && currentTime < introStart + 400.0){",
+            "newPos = position * INTRODISTANCE;",
+            "}",
+            "if(currentTime > introStart + 400.0 && currentTime < introStart + 600.0){",
+            "newPos = position * (1.0 + ((INTRODISTANCE-1.0) * (1.0-(currentTime - introStart-400.0)/200.0)));",
+            "}",
             "vColor = vec4( color, opacity );", //     set color associated to vertex; use later in fragment shader.
-            // // "vec4 mvPosition = modelViewMatrix * vec4( newPos, 1.0 );",
-            // "gl_PointSize = 2.5 - (dt / 1500.0);",
-            // "gl_Position = projectionMatrix * modelViewMatrix;",
-            "gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);",
+            "gl_Position = projectionMatrix * modelViewMatrix * vec4(newPos, 1.0);",
             "}"
         ].join("\n");
 
@@ -508,9 +471,7 @@ var ENCOM = (function(ENCOM, THREE, document){
         ].join("\n");
 
         var pointAttributes = {
-            myStartTime: {type: 'f', value: []},
-            myStartLat: {type: 'f', value: []},
-            myStartLon: {type: 'f', value: []}
+            lng: {type: 'f', value: null}
         };
 
         this.pointUniforms = {
@@ -527,23 +488,6 @@ var ENCOM = (function(ENCOM, THREE, document){
             vertexColors: THREE.VertexColors,
             side: THREE.DoubleSide
         });
-
-
-
-        // for(var i = 0; i< 2000; i++){
-        //     var vertex = new THREE.Vector3();
-        //     vertex.set(0,0,_this.cameraDistance+1);
-        //     _this.smokeParticleGeometry.vertices.push( vertex );
-        //     _this.smokeAttributes.myStartTime.value[i] = 0.0;
-        //     _this.smokeAttributes.myStartLat.value[i] = 0.0;
-        //     _this.smokeAttributes.myStartLon.value[i] = 0.0;
-        //     _this.smokeAttributes.active.value[i] = 0.0;
-        // }
-        // _this.smokeAttributes.myStartTime.needsUpdate = true;
-        // _this.smokeAttributes.myStartLat.needsUpdate = true;
-        // _this.smokeAttributes.myStartLon.needsUpdate = true;
-        // _this.smokeAttributes.active.needsUpdate = true;
-
 
         this.scene.add( new THREE.AmbientLight( 0x444444 ) );
 
@@ -565,13 +509,19 @@ var ENCOM = (function(ENCOM, THREE, document){
         geometry.addAttribute( 'position', Float32Array, triangles * 3, 3 );
         geometry.addAttribute( 'normal', Float32Array, triangles * 3, 3 );
         geometry.addAttribute( 'color', Float32Array, triangles * 3, 3 );
+        geometry.addAttribute( 'lng', Float32Array, triangles * 3, 1 );
+
+        lng_values = geometry.attributes.lng.array;
+        
 
         var myColors1 = pusher.color('#ffcc00').hueSet();
         var myColors = [];
+        // var baseColor = pusher.color('#ffcc00');
+        // for(var i = 0; i< 10; i++){
+        //     myColors.push(baseColor.shade(i/10));
+        // }
         for(var i = 0; i< myColors1.length; i++){
-            // myColors.push(myColors1[i]);
-            myColors.push(myColors1[i].shade(.4 + Math.random()/2.0));
-            myColors.push(myColors1[i].shade(.4 + Math.random()/2.0));
+            myColors.push(myColors1[i].shade(Math.random()/3.0));
         }
 
         // break geometry into
@@ -603,8 +553,14 @@ var ENCOM = (function(ENCOM, THREE, document){
         var cb = new THREE.Vector3();
         var ab = new THREE.Vector3();
 
+
         var addTriangle = function(k, ax, ay, az, bx, by, bz, cx, cy, cz, lat, lng, color){
-            var i = k * 9;
+            var p = k * 3;
+            var i = p * 3;
+
+            lng_values[p] = lng;
+            lng_values[p+1] = lng;
+            lng_values[p+2] = lng;
 
             positions[ i ]     = ax;
             positions[ i + 1 ] = ay;
@@ -646,36 +602,9 @@ var ENCOM = (function(ENCOM, THREE, document){
             normals[ i + 7 ] = ny;
             normals[ i + 8 ] = nz;
 
-            // colors
-
-            // var vx = ( ax / n ) + 0.5;
-            // var vy = ( ay / n ) + 0.5;
-            // var vz = ( az / n ) + 0.5;
-
-            // color.setRGB( vx, vy, vz );
-
             var colorIndex = Math.floor(Math.random()*myColors.length);
 
             var colorRGB = myColors[colorIndex].rgb();
-
-            // console.log(colorRGB);
-
-            // color.setRGB(colorRGB[0], colorRGB[1], colorRGB[2]);
-            // color.setRGB(colorRGB[0]/256.0, colorRGB[1]/256.0, colorRGB[2]/256.0);//colorRGB[0], colorRGB[1], colorRGB[2]);
-            
-            
-
-            // colors[i] = colorRGB[0];
-            // colors[ i + 1 ] = colorRGB[1];
-            // colors[ i + 2 ] = colorRGB[2];
-
-            // colors[ i + 3 ] = colorRGB[0];
-            // colors[ i + 4 ] = colorRGB[1];
-            // colors[ i + 5 ] = colorRGB[2];
-
-            // colors[ i + 6 ] = colorRGB[0];
-            // colors[ i + 7 ] = colorRGB[1];
-            // colors[ i + 8 ] = colorRGB[2];
 
             colors[ i ]     = color.r;
             colors[ i + 1 ] = color.g;
@@ -689,21 +618,11 @@ var ENCOM = (function(ENCOM, THREE, document){
             colors[ i + 7 ] = color.g;
             colors[ i + 8 ] = color.b;
 
-            for(var ii = 0; ii < 9; ii++){
-                pointAttributes.myStartTime.value[i + ii] = 0.0;
-                pointAttributes.myStartLat.value[i + ii] = lat;
-                pointAttributes.myStartLon.value[i + ii] = lng;
-            }
-
         };
-
-        pointAttributes.myStartTime.needsUpdate = true;
-        pointAttributes.myStartLat.needsUpdate = true;
-        pointAttributes.myStartLon.needsUpdate = true;
 
         addHex = function(i, lat, lng){
             var k = i * 4;
-            var C = .6;
+            var C = Math.random()*.25 + .25;
             var B = .866*C;
             var A = C/2;
 
@@ -720,12 +639,12 @@ var ENCOM = (function(ENCOM, THREE, document){
             // var p6a = A;
             // var p6b = 2*B;
 
-            var p1 = mapPoint(lat + 0, lng + A + C, 500);
-            var p2 = mapPoint(lat + 0, lng + A, 500);
-            var p3 = mapPoint(lat + B, lng + 0, 500);
-            var p4 = mapPoint(lat + 2*B, lng + A, 500);
-            var p5 = mapPoint(lat + 2*B, lng + A + C, 500);
-            var p6 = mapPoint(lat + B, lng + 2*C, 500);
+            var p1 = mapPoint(lat + 0 - B, lng + A + C - B, 500);
+            var p2 = mapPoint(lat + 0 - B, lng + A - B, 500);
+            var p3 = mapPoint(lat + B - B, lng + 0 - B, 500);
+            var p4 = mapPoint(lat + 2*B - B, lng + A - B, 500);
+            var p5 = mapPoint(lat + 2*B - B, lng + A + C - B, 500);
+            var p6 = mapPoint(lat + B - B, lng + 2*C - B, 500);
 
             var colorIndex = Math.floor(Math.random()*myColors.length);
             var colorRGB = myColors[colorIndex].rgb();
@@ -1505,7 +1424,9 @@ var ENCOM = (function(ENCOM, THREE, document){
 
 
     Globe.prototype.tick = function(){
-        runPointAnimations.call(this);
+        if(!this.firstRunTime){
+            this.firstRunTime = Date.now();
+        }
         addInitialData.call(this);
         TWEEN.update();
 
