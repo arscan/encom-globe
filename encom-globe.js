@@ -360,62 +360,6 @@ var ENCOM = (function(ENCOM, THREE, document){
 
     }
 
-    var mainParticles = function(){
-
-        var material, geometry;
-
-        var colors = [];
-
-        var sprite = this.hexTexture;
-        var myColors1 = pusher.color('#ffcc00').hueSet();
-        var myColors = [];
-        for(var i = 0; i< myColors1.length; i++){
-            myColors.push(myColors1[i]);
-
-            // myColors.push(myColors1[i].shade(.2 + Math.random()/2.0));
-            // myColors.push(myColors1[i].shade(.2 + Math.random()/2.0));
-        }
-        var geometry = new THREE.Geometry();
-
-        for ( i = 0; i < this.points.length; i ++ ) {
-
-
-            var vertex = new THREE.Vector3();
-            var point = mapPoint(this.points[i].lat, this.points[i].lon, 500);
-            var delay = this.swirlTime*((180+this.points[i].lon)/360.0); 
-
-            vertex.x = 0;
-            vertex.y = 0;
-            vertex.z = this.cameraDistance+1;
-
-            geometry.vertices.push( vertex );
-
-            addPointAnimation.call(this,delay, i, {
-                x : point.x*this.swirlMultiplier,
-                y : point.y*this.swirlMultiplier,
-                z : point.z*this.swirlMultiplier});
-
-                for(var a = 0; a < 4; a++){
-                    addPointAnimation.call(this,delay + 500 + (60)*a, i, {
-                        x : point.x*(this.swirlMultiplier - (.1 + a/40.0)),
-                        y : point.y*(this.swirlMultiplier - (.1 + a/40.0)),
-                        z : point.z*(this.swirlMultiplier - (.1 + a/40.0))});
-                }
-
-
-        }
-
-        geometry.colors = colors;
-
-        material = new THREE.ParticleSystemMaterial( { size: 13, map: sprite, vertexColors: true, transparent: false} );
-
-        this.globe_particles = new THREE.ParticleSystem( geometry, material );
-
-        this.scene.add( this.globe_particles );
-
-    };
-
-
     var addBufferParticles = function(){
 
         var pointVertexShader = [
@@ -1077,7 +1021,6 @@ var ENCOM = (function(ENCOM, THREE, document){
         };
 
         this.markerTopTexture = new THREE.ImageUtils.loadTexture( 'resources/markertop.png', undefined, registerCallback());
-        this.hexTexture = THREE.ImageUtils.loadTexture( "resources/hex.png", undefined, registerCallback());
 
         this.specialMarkerTexture = new THREE.Texture(createSpecialMarkerCanvas.call(this));
         this.specialMarkerTexture.needsUpdate = true;
