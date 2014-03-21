@@ -353,7 +353,7 @@ var ENCOM = (function(ENCOM, THREE, document){
 
     };
 
-    var addBufferParticles = function(){
+    var createParticles = function(){
 
         var pointVertexShader = [
             "#define PI 3.141592653589793238462643",
@@ -552,7 +552,7 @@ var ENCOM = (function(ENCOM, THREE, document){
 
     };
 
-    var swirls = function(){
+    var createIntroLines = function(){
         var sPoint;
         var swirlMaterial = new THREE.LineBasicMaterial({
             color: this.introLinesColor,
@@ -812,8 +812,7 @@ var ENCOM = (function(ENCOM, THREE, document){
 
                     _this.scene.fog = new THREE.Fog( 0x000000, _this.cameraDistance-200, _this.cameraDistance+250 );
 
-                    // add the swirls
-                    swirls.call(_this);
+                    createIntroLines.call(_this);
 
                     // pregenerate the satellite canvas
                     var numFrames = 50;
@@ -918,10 +917,10 @@ var ENCOM = (function(ENCOM, THREE, document){
                     _this.smokeAttributes.myStartLon.needsUpdate = true;
                     _this.smokeAttributes.active.needsUpdate = true;
 
-                    var particleSystem = new THREE.ParticleSystem( _this.smokeParticleGeometry, _this.smokeMaterial);
+                    _this.scene.add( new THREE.ParticleSystem( _this.smokeParticleGeometry, _this.smokeMaterial));
 
-                    _this.scene.add( particleSystem);
-                    addBufferParticles.call(_this);
+
+                    createParticles.call(_this);
 
                     cb();
                 }
