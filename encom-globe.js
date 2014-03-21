@@ -709,6 +709,7 @@ var ENCOM = (function(ENCOM, THREE, document){
         var defaults = {
             font: "Inconsolata",
             baseColor: "#ffcc00",
+            blankPercentage: .08,
             thinAntarctica: .01, // only show 1% of antartica... you can't really see it on the map anyhow
             mapUrl: "resources/equirectangle_projection.png",
             introLinesAltitude: 1.10,
@@ -791,7 +792,7 @@ var ENCOM = (function(ENCOM, THREE, document){
                     for (var i = 0; i< samples.length; i++){
 
                         samplePoints(projectionContext,img.width, img.height, samples[i].offsetLat, samples[i].offsetLon, samples[i].incLat, samples[i].incLon, function(point){
-                            if(point.lat > -60 || Math.random() < _this.thinAntarctica){
+                            if((point.lat > -60 && Math.random() > _this.blankPercentage) || Math.random() < _this.thinAntarctica){
                                 _this.points.push(point);
                             }
                         });
