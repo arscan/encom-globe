@@ -15,14 +15,12 @@
         <script src="include/three.min.js"></script>
         <script src="include/tween.min.js"></script>
         <script src="include/pusher.color.js"></script>
-        <script src="data.js"></script>
+        <script src="data.json"></script>
         <script src="encom-globe.js"></script>
 
         <script>
-            var globe = new ENCOM.Globe({
+            var globe = new ENCOM.Globe(600, 600, {
                 font: "Inconsolata",
-                width: 600,
-                height: 600,
                 data: data
                 });
 

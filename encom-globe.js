@@ -1,16 +1,10 @@
 
 var ENCOM = (function(ENCOM, THREE, document){
 
-    var pixelData;
-
     var extend = function(first, second) {
         for(var i in first){
             second[i] = first[i];
         }
-    };
-
-    var sCurve = function(t) {
-        return 1/(1 + Math.exp(-t*12 + 6));
     };
 
     var renderToCanvas = function (width, height, renderFunction) {
@@ -33,7 +27,6 @@ var ENCOM = (function(ENCOM, THREE, document){
 
         this.shutDownFlag = (this.repeatAtTile < 0);
         this.done = false;
-
 
         this.tilesHorizontal = tilesHoriz;
         this.tilesVertical = tilesVert;
@@ -83,8 +76,6 @@ var ENCOM = (function(ENCOM, THREE, document){
 
     };
 
-    /* private globe function */
-
     var latLonToXY = function(width, height, lat,lon){
 
         var x = Math.floor(width/2.0 + (width/360.0)*lon);
@@ -95,12 +86,14 @@ var ENCOM = (function(ENCOM, THREE, document){
 
     var samplePoints = function(projectionContext, width, height, latoffset, lonoffset, latinc, loninc, cb){
         var points = [],
-        isPixelBlack = function(context, x, y, width, height){
-            if(pixelData == undefined){
-                pixelData = context.getImageData(0,0,width, height);
-            }
-            return pixelData.data[(y * pixelData.width + x) * 4] === 0;
-        };
+            pixelData = null;
+
+        var isPixelBlack = function(context, x, y, width, height){
+                if(pixelData == null){
+                    pixelData = context.getImageData(0,0,width, height);
+                }
+                return pixelData.data[(y * pixelData.width + x) * 4] === 0;
+            };
 
         for(var lat = 90-latoffset; lat > -90; lat -= latinc){
             for(var lon = -180+lonoffset; lon < 180; lon += loninc){
@@ -143,7 +136,7 @@ var ENCOM = (function(ENCOM, THREE, document){
 
         var canvas = document.createElement("canvas");
         var context = canvas.getContext("2d");
-        context.font = size + "pt Inconsolata";
+        context.font = size + "pt " + this.font;
 
         var textWidth = context.measureText(text).width;
 
@@ -162,7 +155,7 @@ var ENCOM = (function(ENCOM, THREE, document){
         if(underlineColor){
             canvas.height += 30;
         }
-        context.font = size + "pt Inconsolata";
+        context.font = size + "pt " + this.font;
 
         context.textAlign = "center";
         context.textBaseline = "middle";
@@ -221,8 +214,8 @@ var ENCOM = (function(ENCOM, THREE, document){
         var waveInterval = Math.floor((numFrames-waveStart)/numWaves);
         var waveDist = pixels - 25; // width - center of satellite
         var distPerFrame = waveDist / (numFrames-waveStart)
-        var offsetx = 0,
-        offsety = 0;
+        var offsetx = 0;
+        var offsety = 0;
         var curRow = 0;
 
         return renderToCanvas(numFrames * pixels / rows, pixels * rows, function(ctx){
@@ -342,7 +335,7 @@ var ENCOM = (function(ENCOM, THREE, document){
 
     var createSpecialMarkerCanvas = function() {
         var markerWidth = 100,
-        markerHeight = 100;
+            markerHeight = 100;
 
         return renderToCanvas(markerWidth, markerHeight, function(ctx){
             ctx.strokeStyle="#FFCC00";
@@ -358,15 +351,15 @@ var ENCOM = (function(ENCOM, THREE, document){
 
         });
 
-    }
+    };
 
     var addBufferParticles = function(){
 
         var pointVertexShader = [
             "#define PI 3.141592653589793238462643",
             "#define DISTANCE 500.0",
-            "#define INTRODURATION " + (parseFloat(this.swirlTime) + .00001),
-            "#define INTRODISTANCE " + (parseFloat(this.swirlMultiplier) + .00001),
+            "#define INTRODURATION " + (parseFloat(this.introLinesDuration) + .00001),
+            "#define INTRODISTANCE " + (parseFloat(this.introLinesAltitude) + .00001),
             "attribute float lng;",
             "uniform float currentTime;",
             "varying vec4 vColor;",
@@ -449,8 +442,6 @@ var ENCOM = (function(ENCOM, THREE, document){
 
         var indices = geometry.attributes.index.array;
 
-        console.log(indices.length);
-
         for ( var i = 0; i < indices.length; i ++ ) {
 
             indices[ i ] = i % ( 3 * chunkSize );
@@ -509,7 +500,8 @@ var ENCOM = (function(ENCOM, THREE, document){
 
         var addHex = function(i, lat, lng){
             var k = i * 4;
-            var C = Math.random()*.25 + .25;
+            // var C = Math.random()*.25 + .25;
+            var C = 1/this.pointsPerDegree * Math.min(1,this.pointSize * (1 + (Math.random() * (2*this.pointsVariance)) - this.pointsVariance));
             var B = .866*C;
             var A = C/2;
 
@@ -531,10 +523,10 @@ var ENCOM = (function(ENCOM, THREE, document){
             addTriangle(k+2, p3.x, p3.y, p3.z, p6.x, p6.y, p6.z, p5.x, p5.y, p5.z, lat, lng, color);
             addTriangle(k+3, p4.x, p4.y, p4.z, p3.x, p3.y, p3.z, p5.x, p5.y, p5.z, lat, lng, color);
             
-        }
+        };
 
         for(i = 0; i < this.points.length; i++){
-            addHex(i, this.points[i].lat, this.points[i].lon);
+            addHex.call(this, i, this.points[i].lat, this.points[i].lon);
         }
 
         geometry.offsets = [];
@@ -561,19 +553,16 @@ var ENCOM = (function(ENCOM, THREE, document){
     };
 
     var swirls = function(){
-        var geometrySpline;
         var sPoint;
-        var _this = this;
-
-        this.swirlMaterial = new THREE.LineBasicMaterial({
-            color: 0x8FD8D8,
+        var swirlMaterial = new THREE.LineBasicMaterial({
+            color: this.introLinesColor,
             transparent: true,
             linewidth: 2,
-            opacity: .8
+            opacity: .5
         });
 
-        for(var i = 0; i<75; i++){
-            geometrySpline = new THREE.Geometry();
+        for(var i = 0; i<this.introLinesCount; i++){
+            var geometry = new THREE.Geometry();
 
             var lat = Math.random()*180 + 90;
             var lon =  Math.random()*5;
@@ -586,15 +575,16 @@ var ENCOM = (function(ENCOM, THREE, document){
 
             for(var j = 0; j< lenBase; j++){
                 var thisPoint = mapPoint(lat, lon - j * 5);
-                sPoint = new THREE.Vector3(thisPoint.x*this.swirlMultiplier, thisPoint.y*this.swirlMultiplier, thisPoint.z*this.swirlMultiplier);
+                sPoint = new THREE.Vector3(thisPoint.x*this.introLinesAltitude, thisPoint.y*this.introLinesAltitude, thisPoint.z*this.introLinesAltitude);
 
-                geometrySpline.vertices.push(sPoint);  
+                geometry.vertices.push(sPoint);  
             }
 
-            this.swirl.add(new THREE.Line(geometrySpline, this.swirlMaterial));
+            this.introLines.add(new THREE.Line(geometry, swirlMaterial));
 
         }
-        this.scene.add(this.swirl);
+        this.scene.add(this.introLines);
+        console.log(this.introLines);
     };
 
     var removeMarker = function(marker){
@@ -697,61 +687,50 @@ var ENCOM = (function(ENCOM, THREE, document){
 
     /* globe constructor */
 
-    function Globe(opts){
+    function Globe(width, height, opts){
+        var baseSampleMultiplier = .7;
 
         if(!opts){
             opts = {};
         }
 
-        var baseSampleMultiplier = .85;
+        this.width = width;
+        this.height = height;
+        this.smokeIndex = 0;
+        this.points = [];
+        this.introLines = new THREE.Object3D();
+        this.markers = [];
+        this.quills = [];
+        this.markerCoords = {};
+        this.markerIndex = {};
+        this.satelliteAnimations = [];
+        this.satelliteMeshes = [];
+
 
         var defaults = {
-            width: document.width,
-            height: document.height,
             font: "Inconsolata",
             baseColor: "#ffcc00",
-            thinAntarctica: .001, // you can't really see it on the map anyhow
+            thinAntarctica: .01, // only show 1% of antartica... you can't really see it on the map anyhow
             mapUrl: "resources/equirectangle_projection.png",
-            size: 100,
-            swirlMultiplier: 1.15,
-            swirlTime: 2500,
+            introLinesAltitude: 1.10,
+            introLinesDuration: 1800,
+            introLinesColor: "#8FD8D8",
+            introLinesCount: 60,
             cameraDistance: 1700,
-            samples: [
-                { 
-                offsetLat: 0,
-                offsetLon: 0,
-                incLat: baseSampleMultiplier * 2,
-                incLon: baseSampleMultiplier * 4
-            },
-            { 
-                offsetLat: baseSampleMultiplier,
-                offsetLon: baseSampleMultiplier * 2,
-                incLat: baseSampleMultiplier * 2,
-                incLon: baseSampleMultiplier * 4
-            }
-            ],
-            points: [],
-            globe_pointAnimations: [],
-            swirl: new THREE.Object3D(),
-            markers: [],
-            quills: [],
-            markerCoords: {},
+            pointsPerDegree: 1.1,
+            pointSize: .45,
+            pointsVariance: .3,
             maxMarkers: 20,
             maxQuills:100,
-            markerIndex: {},
-            satelliteAnimations: [],
-            satelliteMeshes: [],
             data: []
-
         };
-
-        this.smokeIndex = 0;
-
-        extend(opts, defaults);
 
         for(var i in defaults){
             if(!this[i]){
                 this[i] = defaults[i];
+                if(opts[i]){
+                    this[i] = opts[i];
+                }
             }
         }
 
@@ -766,8 +745,7 @@ var ENCOM = (function(ENCOM, THREE, document){
         this.data.sort(function(a,b){return (b.lng - b.label.length * 2) - (a.lng - a.label.length * 2)});
 
         for(var i = 0; i< this.data.length; i++){
-            var delay = this.swirlTime*((180+this.data[i].lng)/360.0); 
-            this.data[i].when = delay + 100;
+            this.data[i].when = this.introLinesDuration*((180+this.data[i].lng)/360.0); 
         }
 
     }
@@ -775,37 +753,51 @@ var ENCOM = (function(ENCOM, THREE, document){
     /* public globe functions */
 
     Globe.prototype.init = function(cb){
-        var  projectionContext,
+        var callbackCount = 0,
             img = document.createElement('img'),
             projectionCanvas = document.createElement('canvas'),
+            projectionContext = projectionCanvas.getContext('2d');
             _this = this;
 
         document.body.appendChild(projectionCanvas);
-        projectionContext = projectionCanvas.getContext('2d');
-
-        var numRegistered = 0;
 
         var registerCallback = function(){
-            numRegistered++;
+            callbackCount++;
+
             return function(){
 
-                numRegistered--;
+                callbackCount--;
 
-                if(numRegistered == 0){
+                if(callbackCount == 0){
                     //image has loaded, may rsume
                     projectionCanvas.width = img.width;
                     projectionCanvas.height = img.height;
                     projectionContext.drawImage(img, 0, 0, img.width, img.height);
-                    for (var i = 0; i< _this.samples.length; i++){
 
-                        samplePoints(projectionContext,img.width, img.height, _this.samples[i].offsetLat, _this.samples[i].offsetLon, _this.samples[i].incLat, _this.samples[i].incLon, function(point){
+                    var samples= [
+                            { 
+                                offsetLat: 0,
+                                offsetLon: 0,
+                                incLat: (1 / _this.pointsPerDegree) * 2,
+                                incLon: (1 /_this.pointsPerDegree) * 4
+                            },
+                            { 
+                                offsetLat: (1 / _this.pointsPerDegree),
+                                offsetLon: (1 / _this.pointsPerDegree) * 2,
+                                incLat: (1 / _this.pointsPerDegree) * 2,
+                                incLon: ( 1/ _this.pointsPerDegree) * 4
+                            }
+                        ];
+
+                    for (var i = 0; i< samples.length; i++){
+
+                        samplePoints(projectionContext,img.width, img.height, samples[i].offsetLat, samples[i].offsetLon, samples[i].incLat, samples[i].incLon, function(point){
                             if(point.lat > -60 || Math.random() < _this.thinAntarctica){
                                 _this.points.push(point);
                             }
                         });
                     }
                     document.body.removeChild(projectionCanvas);
-
 
                     // create the camera
 
@@ -952,7 +944,6 @@ var ENCOM = (function(ENCOM, THREE, document){
         var _this = this;
         var point = mapPoint(lat,lng);
 
-
         /* check to see if we have somebody at that exact lat-lng right now */
 
         var checkExisting = this.markerIndex[lat + "-" + lng];
@@ -993,7 +984,7 @@ var ENCOM = (function(ENCOM, THREE, document){
             // create the new one
 
             /* add the text */
-            var textSprite = createLabel(text, point.x*1.18, point.y*1.18, point.z*1.18, 18, "white");
+            var textSprite = createLabel.call(this,text, point.x*1.18, point.y*1.18, point.z*1.18, 18, "white");
             this.scene.add(textSprite);
 
             /* add the top */
@@ -1096,28 +1087,28 @@ var ENCOM = (function(ENCOM, THREE, document){
         this.scene.add(marker1);
         this.scene.add(marker2);
 
-        var textSprite1 = createLabel(text1.toUpperCase(), point1.x*1.25, point1.y*1.25, point1.z*1.25, 25, "white", "#FFCC00");
-        var textSprite2 = createLabel(text2.toUpperCase(), point2.x*1.25, point2.y*1.25, point2.z*1.25, 25, "white", "#FFCC00");
+        var textSprite1 = createLabel.call(this, text1.toUpperCase(), point1.x*1.25, point1.y*1.25, point1.z*1.25, 25, "white", "#FFCC00");
+        var textSprite2 = createLabel.call(this, text2.toUpperCase(), point2.x*1.25, point2.y*1.25, point2.z*1.25, 25, "white", "#FFCC00");
 
         this.scene.add(textSprite1);
         this.scene.add(textSprite2);
 
         new TWEEN.Tween({x: 0, y: 0})
-        .to({x: 50, y: 50}, 2000)
-        .easing( TWEEN.Easing.Elastic.InOut )
-        .onUpdate(function(){
-            marker1.scale.set(this.x, this.y);
-        })
-        .start();
+            .to({x: 50, y: 50}, 2000)
+            .easing( TWEEN.Easing.Elastic.InOut )
+            .onUpdate(function(){
+                marker1.scale.set(this.x, this.y);
+            })
+            .start();
 
         new TWEEN.Tween({x: 0, y: 0})
-        .to({x: 45, y: 45}, 2000)
-        .easing( TWEEN.Easing.Elastic.InOut )
-        .onUpdate(function(){
-            marker2.scale.set(this.x, this.y);
-        })
-        .delay(2200)
-        .start();
+            .to({x: 45, y: 45}, 2000)
+            .easing( TWEEN.Easing.Elastic.InOut )
+            .onUpdate(function(){
+                marker2.scale.set(this.x, this.y);
+            })
+            .delay(2200)
+            .start();
 
         var geometrySpline = new THREE.Geometry();
         var materialSpline = new THREE.LineBasicMaterial({
@@ -1202,7 +1193,6 @@ var ENCOM = (function(ENCOM, THREE, document){
         this.scene.add(new THREE.Line(geometrySpline, materialSpline));
         this.scene.add(new THREE.Line(geometrySpline2, materialSpline2, THREE.LinePieces));
     }
-
 
     Globe.prototype.addSatellite = function(lat, lon, dist, newTexture){
 
@@ -1315,18 +1305,16 @@ var ENCOM = (function(ENCOM, THREE, document){
 
         }
 
-        if(this.swirlTime > this.totalRunTime){
-            if(this.totalRunTime/this.swirlTime < .1){
-                this.swirlMaterial.opacity = (this.totalRunTime/this.swirlTime)*10 - .2;
-            } else if(this.totalRunTime/this.swirlTime < .9){
-                this.swirlMaterial.opacity = .8;
-            }if(this.totalRunTime/this.swirlTime > .9){
-                // this.swirlMaterial.opacity = Math.max(1-this.totalRunTime/this.swirlTime,0);
+        if(this.introLinesDuration > this.totalRunTime){
+            if(this.totalRunTime/this.introLinesDuration < .1){
+                this.introLines.children[0].material.opacity = (this.totalRunTime/this.introLinesDuration) * (1 / .1) - .2;
+            }if(this.totalRunTime/this.introLinesDuration > .8){
+                this.introLines.children[0].material.opacity = Math.max(1-this.totalRunTime/this.introLinesDuration,0) * (1 / .2);
             }
-            this.swirl.rotateY((2 * Math.PI)/(this.swirlTime/renderTime));
-        } else if(this.swirl){
-            this.scene.remove(this.swirl);
-            delete[this.swirl];
+            this.introLines.rotateY((2 * Math.PI)/(this.introLinesDuration/renderTime));
+        } else if(this.introLines){
+            this.scene.remove(this.introLines);
+            delete[this.introLines];
         }
 
         // do the shaders
