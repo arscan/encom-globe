@@ -19,6 +19,7 @@
     "**/.*",
     "node_modules",
     "bower_components",
+    "src",
     "test",
     "tests",
     "include",
@@ -27,7 +28,7 @@
     "styles.css",
     "index.html",
     "Gruntfile.js",
-    "data.js",
+    "data.json",
     "package.json",
     "README.md"
   ],
