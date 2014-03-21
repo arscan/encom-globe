@@ -359,7 +359,7 @@ var ENCOM = (function(ENCOM, THREE, document){
             "#define PI 3.141592653589793238462643",
             "#define DISTANCE 500.0",
             "#define INTRODURATION " + (parseFloat(this.introLinesDuration) + .00001),
-            "#define INTRODISTANCE " + (parseFloat(this.introLinesAltitude) + .00001),
+            "#define INTROALTITUDE " + (parseFloat(this.introLinesAltitude) + .00001),
             "attribute float lng;",
             "uniform float currentTime;",
             "varying vec4 vColor;",
@@ -372,12 +372,12 @@ var ENCOM = (function(ENCOM, THREE, document){
             "   if(currentTime > introStart){",
             "      opacity = 1.0;",
             "   }",
-            "   if(currentTime > introStart && currentTime < introStart + 400.0){",
-            "      newPos = position * INTRODISTANCE;",
-            "      opacity = .2;",
+            "   if(currentTime > introStart && currentTime < introStart + INTRODURATION / 8.0){",
+            "      newPos = position * INTROALTITUDE;",
+            "      opacity = .3;",
             "   }",
-            "   if(currentTime > introStart + 400.0 && currentTime < introStart + 600.0){",
-            "      newPos = position * (1.0 + ((INTRODISTANCE-1.0) * (1.0-(currentTime - introStart-400.0)/200.0)));",
+            "   if(currentTime > introStart + INTRODURATION / 8.0 && currentTime < introStart + INTRODURATION / 8.0 + 200.0){",
+            "      newPos = position * (1.0 + ((INTROALTITUDE-1.0) * (1.0-(currentTime - introStart-(INTRODURATION/8.0))/200.0)));",
             "   }",
             "   vColor = vec4( color, opacity );", //     set color associated to vertex; use later in fragment shader.
             "   gl_Position = projectionMatrix * modelViewMatrix * vec4(newPos, 1.0);",
@@ -554,7 +554,7 @@ var ENCOM = (function(ENCOM, THREE, document){
 
     var createIntroLines = function(){
         var sPoint;
-        var swirlMaterial = new THREE.LineBasicMaterial({
+        var introLinesMaterial = new THREE.LineBasicMaterial({
             color: this.introLinesColor,
             transparent: true,
             linewidth: 2,
@@ -580,11 +580,10 @@ var ENCOM = (function(ENCOM, THREE, document){
                 geometry.vertices.push(sPoint);  
             }
 
-            this.introLines.add(new THREE.Line(geometry, swirlMaterial));
+            this.introLines.add(new THREE.Line(geometry, introLinesMaterial));
 
         }
         this.scene.add(this.introLines);
-        console.log(this.introLines);
     };
 
     var removeMarker = function(marker){
@@ -713,7 +712,7 @@ var ENCOM = (function(ENCOM, THREE, document){
             thinAntarctica: .01, // only show 1% of antartica... you can't really see it on the map anyhow
             mapUrl: "resources/equirectangle_projection.png",
             introLinesAltitude: 1.10,
-            introLinesDuration: 1800,
+            introLinesDuration: 2000,
             introLinesColor: "#8FD8D8",
             introLinesCount: 60,
             cameraDistance: 1700,
