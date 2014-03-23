@@ -1115,17 +1115,17 @@ var Globe = (function(THREE, TWEEN, document){
             this.satellites[satellite.toString()] = satellite;
         }
 
+        satellite.onRemove(function(){
+            delete this.satellites[satellite.toString()];
+        }.bind(this));
+
         return satellite;
-
-        /*
-
-        return {mesh: mesh, shutDownFunc: (animator ? animator.shutDown : function(){})};
-
-       */
 
     };
     
     Globe.prototype.addConstellation = function(sats){
+
+        /* TODO: make it so that when you remove the first in a constillation it removes all others */
 
         var texture,
             animator,

@@ -125,7 +125,7 @@ var Satellite = (function(TextureAnimator, THREE, document){
                 var centerx = offsetx + 25;
                 var centery = offsety + Math.floor(pixels/2);
 
-                /* white circle around red core */
+                /* circle around core */
                 // i have between 0 and wavestart to fade in
                 // i have between wavestart and  waveend - (time between waves*2) 
                 // to do a full spin close and then back open
@@ -259,6 +259,8 @@ var Satellite = (function(TextureAnimator, THREE, document){
         this.altitude = altitude;
         this.scene = scene;
 
+        this.onRemoveList = [];
+
         /* private vars */
         numFrames = 50;
         pixels = 100;
@@ -329,10 +331,19 @@ var Satellite = (function(TextureAnimator, THREE, document){
     Satellite.prototype.remove = function() {
 
 
+        this.scene.remove(this.mesh);
+
+        for(var i = 0; i< this.onRemoveList.length; i++){
+            this.onRemoveList[i]();
+        }
     };
 
+    Satellite.prototype.onRemove = function(fn){
+        this.onRemoveList.push(fn);
+    }
+
     Satellite.prototype.toString = function(){
-        return this.lat + '_' + this.lon + '_' + this.altitude;
+        return "" + this.lat + '_' + this.lon + '_' + this.altitude;
     };
 
     return Satellite;
@@ -1456,17 +1467,17 @@ var Globe = (function(THREE, TWEEN, document){
             this.satellites[satellite.toString()] = satellite;
         }
 
+        satellite.onRemove(function(){
+            delete this.satellites[satellite.toString()];
+        }.bind(this));
+
         return satellite;
-
-        /*
-
-        return {mesh: mesh, shutDownFunc: (animator ? animator.shutDown : function(){})};
-
-       */
 
     };
     
     Globe.prototype.addConstellation = function(sats){
+
+        /* TODO: make it so that when you remove the first in a constillation it removes all others */
 
         var texture,
             animator,
