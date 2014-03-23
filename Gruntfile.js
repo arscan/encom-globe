@@ -23,11 +23,18 @@ module.exports = function(grunt) {
             tasks: ['concat'],
             files: ['src/*.js', 'index.html', 'styles.css', 'Gruntfile.js']
         },
+        copy: {
+            main : {
+                src: 'node_modules/quadtree2/quadtree2.js',
+                dest: 'include/quadtree2.js'
+            }
+        }
     });
 
 
     grunt.loadNpmTasks('grunt-contrib-concat');
     grunt.loadNpmTasks('grunt-contrib-watch');
+    grunt.loadNpmTasks('grunt-contrib-copy');
 
 
 };
