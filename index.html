@@ -146,8 +146,16 @@
                 });
 
                 $("#satellite-go").click(function(){
-                    globe.addSatellite($("#satellite-lat").val(), $("#satellite-lng").val(), 1.3, true);
+                    var opts = {
+                        numWaves: 13,
+                        waveColor: "#FFCC00",
+                        coreColor: "#00EEEE",
+                        shieldColor: "#FFCC00",
+                        size: 0.8
+                    };
+                    globe.addSatellite($("#satellite-lat").val(), $("#satellite-lng").val(), 1.3, opts);
                 });
+
                 $("#connected-go").click(function(){
                     globe.addConnectedPoints($("#connected-1-lat").val(), $("#connected-1-lng").val(), $("#connected-1-name").val(), $("#connected-2-lat").val(), $("#connected-2-lng").val(), $("#connected-2-name").val());
                 });
@@ -167,11 +175,19 @@
                 
                 /* add 6 satellites in random locations */
                 setTimeout(function(){
+                    var constellation = [];
+
                     for(var i = 0; i< 2; i++){
                         for(var j = 0; j< 3; j++){
-                            globe.addSatellite(50 * i - 30 + 15 * Math.random(), 120 * j - 120 + 30 * i, 1.3 + Math.random()/10);
+                             constellation.push({
+                                lat: 50 * i - 30 + 15 * Math.random(), 
+                                 lon: 120 * j - 120 + 30 * i, 
+                                 altitude: 1.3 + Math.random()/10
+                                 });
                         }
                     }
+
+                    globe.addConstellation(constellation);
                 }, 4000);
 
                 /* add the connected points that are in the movie */

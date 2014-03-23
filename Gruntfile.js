@@ -10,6 +10,8 @@ module.exports = function(grunt) {
             dist: {
                 src: [
                     'src/utils.js',
+                    'src/TextureAnimator.js',
+                    'src/Satellite.js',
                     'src/!(Globe).js',
                     'src/Globe.js'
                 ],

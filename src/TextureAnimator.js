@@ -1,11 +1,10 @@
 // based on http://stemkoski.github.io/Three.js/Texture-Animation.html
 var TextureAnimator = function(texture, tilesVert, tilesHoriz, numTiles, tileDispDuration, repeatAtTile) 
 {   
-    var _this = this;
     // note: texture passed by reference, will be updated by the update function.
 
     if(repeatAtTile == undefined){
-        repeatAtTile=-1;
+        this.repeatAtTile=-1;
     }
 
     this.shutDownFlag = (this.repeatAtTile < 0);
