@@ -852,6 +852,20 @@ var Globe = (function(THREE, TWEEN, document){
 
     Globe.prototype.addMarker = function(lat, lng, text){
 
+        var altitude = 1.2;
+
+        if(typeof text != "string" || text.length === 0){
+            altitude -= Math.random() * .1;
+        } else {
+           altitude -= Math.random() * .1;
+        }
+
+        var pin = new Pin(lat, lng, text, altitude, this.scene);
+
+
+        return;
+        
+
         var _this = this;
         var point = mapPoint(lat,lng);
 

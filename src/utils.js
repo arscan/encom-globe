@@ -36,3 +36,80 @@ function hexToRgb(hex) {
     } : null;
 }
 
+var createLabel = function(text, size, color, font, underlineColor) {
+
+    var canvas = document.createElement("canvas");
+    var context = canvas.getContext("2d");
+    context.font = size + "pt " + font;
+
+    var textWidth = context.measureText(text).width;
+
+    canvas.width = textWidth;
+    canvas.height = size + 10;
+
+    // better if canvases have even heights
+    if(canvas.width % 2){
+        canvas.width++;
+    }
+    if(canvas.height % 2){
+        canvas.height++;
+    }
+
+    if(underlineColor){
+        canvas.height += 30;
+    }
+    context.font = size + "pt " + font;
+
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+
+    context.strokeStyle = 'black';
+
+    context.miterLimit = 2;
+    context.lineJoin = 'circle';
+    context.lineWidth = 6;
+
+    context.strokeText(text, canvas.width / 2, canvas.height / 2);
+
+    context.lineWidth = 2;
+
+    context.fillStyle = color;
+    context.fillText(text, canvas.width / 2, canvas.height / 2);
+
+    if(underlineColor){
+        context.strokeStyle=underlineColor;
+        context.lineWidth=4;
+        context.beginPath();
+        context.moveTo(0, canvas.height-10);
+        context.lineTo(canvas.width-1, canvas.height-10);
+        context.stroke();
+    }
+
+    /*
+
+       var texture = new THREE.Texture(canvas);
+       texture.needsUpdate = true;
+
+       var material = new THREE.SpriteMaterial({
+map : texture,
+useScreenCoordinates: false,
+opacity:0,
+depthTest: false,
+fog: true
+
+});
+
+var sprite = new THREE.Sprite(material);
+sprite.position = {x: x*1.1, y: y + (y < 0 ? -15 : 30), z: z*1.1};
+sprite.scale.set(canvas.width, canvas.height);
+new TWEEN.Tween( {opacity: 0})
+.to( {opacity: 1}, 500 )
+.onUpdate(function(){
+material.opacity = this.opacity
+}).delay(1000)
+.start();
+*/
+
+    return canvas;
+
+}
