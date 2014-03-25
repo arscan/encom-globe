@@ -510,11 +510,11 @@ var Globe = (function(THREE, TWEEN, document){
 
         marker.active = false;
 
-        for(var i = marker.startSmokeIndex; i< marker.smokeCount + marker.startSmokeIndex; i++){
-            var realI = i % _this.smokeAttributes.active.value.length;
-            _this.smokeAttributes.active.value[realI] = 0.0;
-            _this.smokeAttributes.active.needsUpdate = true;
-        }
+        // for(var i = marker.startSmokeIndex; i< marker.smokeCount + marker.startSmokeIndex; i++){
+        //     var realI = i % _this.smokeAttributes.active.value.length;
+        //     _this.smokeAttributes.active.value[realI] = 0.0;
+        //     _this.smokeAttributes.active.needsUpdate = true;
+        // }
 
         new TWEEN.Tween({posx: pos.x, posy: pos.y, posz: pos.z, opacity: 1})
         .to( {posx: pos.x/scaleDownBy, posy: pos.y/scaleDownBy, posz: pos.z/scaleDownBy, opacity: 0}, 1000 )
@@ -607,7 +607,7 @@ var Globe = (function(THREE, TWEEN, document){
 
         this.width = width;
         this.height = height;
-        this.smokeIndex = 0;
+        // this.smokeIndex = 0;
         this.points = [];
         this.introLines = new THREE.Object3D();
         this.markers = [];
@@ -733,103 +733,107 @@ var Globe = (function(THREE, TWEEN, document){
                     var waveStart = Math.floor(numFrames/8);
                     var numWaves = 8;
                     var repeatAt = Math.floor(numFrames-2*(numFrames-waveStart)/numWaves)+1;
-                    _this.satelliteCanvas = createSatelliteCanvas.call(this, numFrames, pixels, rows, waveStart, numWaves);
+                    // _this.satelliteCanvas = createSatelliteCanvas.call(this, numFrames, pixels, rows, waveStart, numWaves);
+
+                    // create the smoke particles
+
+                    _this.smokeProvider = new SmokeProvider(_this.scene);
 
                     // initialize the smoke
                     // create particle system
-                    _this.smokeParticleGeometry = new THREE.Geometry();
+                    // _this.smokeParticleGeometry = new THREE.Geometry();
 
-                    _this.smokeVertexShader = [
-                        "#define PI 3.141592653589793238462643",
-                        "#define DISTANCE 600.0",
-                        "attribute float myStartTime;",
-                        "attribute float myStartLat;",
-                        "attribute float myStartLon;",
-                        "attribute float active;",
-                        "uniform float currentTime;",
-                        "uniform vec3 color;",
-                        "varying vec4 vColor;",
-                        "",
-                        "vec3 getPos(float lat, float lon)",
-                        "{",
-                        "   if (lon < -180.0){",
-                        "      lon = lon + 360.0;",
-                        "   }",
-                        "   float phi = (90.0 - lat) * PI / 180.0;",
-                        "   float theta = (180.0 - lon) * PI / 180.0;",
-                        "   float x = DISTANCE * sin(phi) * cos(theta);",
-                        "   float y = DISTANCE * cos(phi);",
-                        "   float z = DISTANCE * sin(phi) * sin(theta);",
-                        "   return vec3(x, y, z);",
-                        "}",
-                        "",
-                        "void main()",
-                        "{",
-                        "   float dt = currentTime - myStartTime;",
-                        "   if (dt < 0.0){",
-                        "      dt = 0.0;",
-                        "   }",
-                        "   if (dt > 0.0 && active > 0.0) {",
-                        "      dt = mod(dt,1500.0);",
-                        "   }",
-                        "   float opacity = 1.0 - dt/ 1500.0;",
-                        "   if (dt == 0.0 || active == 0.0){",
-                        "      opacity = 0.0;",
-                        "   }",
-                        "   vec3 newPos = getPos(myStartLat, myStartLon - ( dt / 50.0));",
-                        "   vColor = vec4( color, opacity );", //     set color associated to vertex; use later in fragment shader.
-                        "   vec4 mvPosition = modelViewMatrix * vec4( newPos, 1.0 );",
-                        "   gl_PointSize = 2.5 - (dt / 1500.0);",
-                        "   gl_Position = projectionMatrix * mvPosition;",
-                        "}"
-                    ].join("\n");
+                    // _this.smokeVertexShader = [
+                    //     "#define PI 3.141592653589793238462643",
+                    //     "#define DISTANCE 600.0",
+                    //     "attribute float myStartTime;",
+                    //     "attribute float myStartLat;",
+                    //     "attribute float myStartLon;",
+                    //     "attribute float active;",
+                    //     "uniform float currentTime;",
+                    //     "uniform vec3 color;",
+                    //     "varying vec4 vColor;",
+                    //     "",
+                    //     "vec3 getPos(float lat, float lon)",
+                    //     "{",
+                    //     "   if (lon < -180.0){",
+                    //     "      lon = lon + 360.0;",
+                    //     "   }",
+                    //     "   float phi = (90.0 - lat) * PI / 180.0;",
+                    //     "   float theta = (180.0 - lon) * PI / 180.0;",
+                    //     "   float x = DISTANCE * sin(phi) * cos(theta);",
+                    //     "   float y = DISTANCE * cos(phi);",
+                    //     "   float z = DISTANCE * sin(phi) * sin(theta);",
+                    //     "   return vec3(x, y, z);",
+                    //     "}",
+                    //     "",
+                    //     "void main()",
+                    //     "{",
+                    //     "   float dt = currentTime - myStartTime;",
+                    //     "   if (dt < 0.0){",
+                    //     "      dt = 0.0;",
+                    //     "   }",
+                    //     "   if (dt > 0.0 && active > 0.0) {",
+                    //     "      dt = mod(dt,1500.0);",
+                    //     "   }",
+                    //     "   float opacity = 1.0 - dt/ 1500.0;",
+                    //     "   if (dt == 0.0 || active == 0.0){",
+                    //     "      opacity = 0.0;",
+                    //     "   }",
+                    //     "   vec3 newPos = getPos(myStartLat, myStartLon - ( dt / 50.0));",
+                    //     "   vColor = vec4( color, opacity );", //     set color associated to vertex; use later in fragment shader.
+                    //     "   vec4 mvPosition = modelViewMatrix * vec4( newPos, 1.0 );",
+                    //     "   gl_PointSize = 2.5 - (dt / 1500.0);",
+                    //     "   gl_Position = projectionMatrix * mvPosition;",
+                    //     "}"
+                    // ].join("\n");
 
-                    _this.smokeFragmentShader = [
-                        "varying vec4 vColor;",     
-                        "void main()", 
-                        "{",
-                        "   float depth = gl_FragCoord.z / gl_FragCoord.w;",
-                        "   float fogFactor = smoothstep(" + (parseInt(_this.cameraDistance)-200) +".0," + (parseInt(_this.cameraDistance+375)) +".0, depth );",
-                        "   vec3 fogColor = vec3(0.0);",
-                        "   gl_FragColor = mix( vColor, vec4( fogColor, gl_FragColor.w ), fogFactor );",
-                        "}"
-                    ].join("\n");
+                    // _this.smokeFragmentShader = [
+                    //     "varying vec4 vColor;",     
+                    //     "void main()", 
+                    //     "{",
+                    //     "   float depth = gl_FragCoord.z / gl_FragCoord.w;",
+                    //     "   float fogFactor = smoothstep(" + (parseInt(_this.cameraDistance)-200) +".0," + (parseInt(_this.cameraDistance+375)) +".0, depth );",
+                    //     "   vec3 fogColor = vec3(0.0);",
+                    //     "   gl_FragColor = mix( vColor, vec4( fogColor, gl_FragColor.w ), fogFactor );",
+                    //     "}"
+                    // ].join("\n");
 
-                    _this.smokeAttributes = {
-                        myStartTime: {type: 'f', value: []},
-                        myStartLat: {type: 'f', value: []},
-                        myStartLon: {type: 'f', value: []},
-                        active: {type: 'f', value: []}
-                    };
+                    // _this.smokeAttributes = {
+                    //     myStartTime: {type: 'f', value: []},
+                    //     myStartLat: {type: 'f', value: []},
+                    //     myStartLon: {type: 'f', value: []},
+                    //     active: {type: 'f', value: []}
+                    // };
 
-                    _this.smokeUniforms = {
-                        currentTime: { type: 'f', value: 0.0},
-                        color: { type: 'c', value: new THREE.Color("#aaa")},
-                    }
+                    // _this.smokeUniforms = {
+                    //     currentTime: { type: 'f', value: 0.0},
+                    //     color: { type: 'c', value: new THREE.Color("#aaa")},
+                    // }
 
-                    _this.smokeMaterial = new THREE.ShaderMaterial( {
-                        uniforms:       _this.smokeUniforms,
-                        attributes:     _this.smokeAttributes,
-                        vertexShader:   _this.smokeVertexShader,
-                        fragmentShader: _this.smokeFragmentShader,
-                        transparent:    true
-                    });
+                    // _this.smokeMaterial = new THREE.ShaderMaterial( {
+                    //     uniforms:       _this.smokeUniforms,
+                    //     attributes:     _this.smokeAttributes,
+                    //     vertexShader:   _this.smokeVertexShader,
+                    //     fragmentShader: _this.smokeFragmentShader,
+                    //     transparent:    true
+                    // });
 
-                    for(var i = 0; i< 2000; i++){
-                        var vertex = new THREE.Vector3();
-                        vertex.set(0,0,_this.cameraDistance+1);
-                        _this.smokeParticleGeometry.vertices.push( vertex );
-                        _this.smokeAttributes.myStartTime.value[i] = 0.0;
-                        _this.smokeAttributes.myStartLat.value[i] = 0.0;
-                        _this.smokeAttributes.myStartLon.value[i] = 0.0;
-                        _this.smokeAttributes.active.value[i] = 0.0;
-                    }
-                    _this.smokeAttributes.myStartTime.needsUpdate = true;
-                    _this.smokeAttributes.myStartLat.needsUpdate = true;
-                    _this.smokeAttributes.myStartLon.needsUpdate = true;
-                    _this.smokeAttributes.active.needsUpdate = true;
+                    // for(var i = 0; i< 2000; i++){
+                    //     var vertex = new THREE.Vector3();
+                    //     vertex.set(0,0,_this.cameraDistance+1);
+                    //     _this.smokeParticleGeometry.vertices.push( vertex );
+                    //     _this.smokeAttributes.myStartTime.value[i] = 0.0;
+                    //     _this.smokeAttributes.myStartLat.value[i] = 0.0;
+                    //     _this.smokeAttributes.myStartLon.value[i] = 0.0;
+                    //     _this.smokeAttributes.active.value[i] = 0.0;
+                    // }
+                    // _this.smokeAttributes.myStartTime.needsUpdate = true;
+                    // _this.smokeAttributes.myStartLat.needsUpdate = true;
+                    // _this.smokeAttributes.myStartLon.needsUpdate = true;
+                    // _this.smokeAttributes.active.needsUpdate = true;
 
-                    _this.scene.add( new THREE.ParticleSystem( _this.smokeParticleGeometry, _this.smokeMaterial));
+                    // _this.scene.add( new THREE.ParticleSystem( _this.smokeParticleGeometry, _this.smokeMaterial));
 
 
                     createParticles.call(_this);
@@ -860,7 +864,7 @@ var Globe = (function(THREE, TWEEN, document){
            altitude -= Math.random() * .1;
         }
 
-        var pin = new Pin(lat, lng, text, altitude, this.scene);
+        var pin = new Pin(lat, lng, text, altitude, this.scene, this.smokeProvider);
 
 
         return;
@@ -1245,12 +1249,14 @@ var Globe = (function(THREE, TWEEN, document){
 
         // do the shaders
 
-        this.smokeUniforms.currentTime.value = this.totalRunTime;
+        // this.smokeUniforms.currentTime.value = this.totalRunTime;
         this.pointUniforms.currentTime.value = this.totalRunTime;
 
+        this.smokeProvider.tick(this.totalRunTime);
+
+        // updateSatellites.call(this, renderTime);
         this.camera.lookAt( this.scene.position );
         this.renderer.render( this.scene, this.camera );
-        updateSatellites.call(this, renderTime);
 
     }
 

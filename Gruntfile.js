@@ -12,6 +12,7 @@ module.exports = function(grunt) {
                     'src/utils.js',
                     'src/TextureAnimator.js',
                     'src/Satellite.js',
+                    'src/SmokeProvider.js',
                     'src/Pin.js',
                     'src/!(Globe).js',
                     'src/Globe.js'

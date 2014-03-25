@@ -13,7 +13,7 @@ var Pin = (function(THREE, TWEEN, document){
 
     };
 
-    var Pin = function(lat, lon, text, altitude, scene, _opts){
+    var Pin = function(lat, lon, text, altitude, scene, smokeProvider, _opts){
 
         /* options that can be passed in */
         var opts = {
@@ -28,15 +28,12 @@ var Pin = (function(THREE, TWEEN, document){
             showSmoke: (text.length > 0)
         }
 
-        var lineGeometry,
-           lineMaterial,
+        var lineMaterial,
            labelCanvas,
            labelTexture,
            labelMaterial,
-           labelSprite,
            topTexture,
            topMaterial,
-           topSprite,
            point,
            line;
 
@@ -45,6 +42,7 @@ var Pin = (function(THREE, TWEEN, document){
         this.text = text;
         this.altitude = altitude;
         this.scene = scene;
+        this.smokeProvider = smokeProvider;
 
         if(_opts){
             for(var i in opts){
@@ -62,7 +60,7 @@ var Pin = (function(THREE, TWEEN, document){
 
         /* the line */
 
-        lineGeometry = new THREE.Geometry();
+        this.lineGeometry = new THREE.Geometry();
         lineMaterial = new THREE.LineBasicMaterial({
             color: opts.lineColor,
             linewidth: opts.lineWidth
@@ -70,9 +68,9 @@ var Pin = (function(THREE, TWEEN, document){
 
         point = mapPoint(lat,lon);
 
-        lineGeometry.vertices.push(new THREE.Vector3(point.x, point.y, point.z));
-        lineGeometry.vertices.push(new THREE.Vector3(point.x, point.y, point.z));
-        line = new THREE.Line(lineGeometry, lineMaterial);
+        this.lineGeometry.vertices.push(new THREE.Vector3(point.x, point.y, point.z));
+        this.lineGeometry.vertices.push(new THREE.Vector3(point.x, point.y, point.z));
+        line = new THREE.Line(this.lineGeometry, lineMaterial);
 
         /* the label */
 
@@ -88,18 +86,23 @@ var Pin = (function(THREE, TWEEN, document){
            fog: true
         });
 
-       labelSprite = new THREE.Sprite(labelMaterial);
-       labelSprite.position = {x: point.x*altitude*1.1, y: point.y*altitude + (point.y < 0 ? -15 : 30), z: point.z*altitude*1.1};
-       labelSprite.scale.set(labelCanvas.width, labelCanvas.height);
+       this.labelSprite = new THREE.Sprite(labelMaterial);
+       this.labelSprite.position = {x: point.x*altitude*1.1, y: point.y*altitude + (point.y < 0 ? -15 : 30), z: point.z*altitude*1.1};
+       this.labelSprite.scale.set(labelCanvas.width, labelCanvas.height);
 
        /* the top */
 
        topTexture = new THREE.Texture(createTopCanvas(opts.topColor));
        topTexture.needsUpdate = true;
        topMaterial = new THREE.SpriteMaterial({map: topTexture, depthTest: false, fog: true, opacity: 0});
-       topSprite = new THREE.Sprite(topMaterial);
-       topSprite.scale.set(20, 20);
-       topSprite.position.set(point.x * altitude, point.y * altitude, point.z * altitude);
+       this.topSprite = new THREE.Sprite(topMaterial);
+       this.topSprite.scale.set(20, 20);
+       this.topSprite.position.set(point.x * altitude, point.y * altitude, point.z * altitude);
+
+       /* the smoke */
+       if(this.smokeVisible){
+           this.smokeId = smokeProvider.setFire(lat, lon, altitude);
+       }
 
        /* intro animations */
 
@@ -115,21 +118,23 @@ var Pin = (function(THREE, TWEEN, document){
                .start();
        }
 
-        new TWEEN.Tween(point)
-            .to( {x: point.x*altitude, y: point.y*altitude, z: point.z*altitude}, 1500 )
-            .easing( TWEEN.Easing.Elastic.InOut )
-            .onUpdate(function(){
-                lineGeometry.vertices[1].x = this.x;
-                lineGeometry.vertices[1].y = this.y;
-                lineGeometry.vertices[1].z = this.z;
-                lineGeometry.verticesNeedUpdate = true;
-            }).start();
+       var _this = this; //arghhh
+
+       new TWEEN.Tween(point)
+       .to( {x: point.x*altitude, y: point.y*altitude, z: point.z*altitude}, 1500 )
+       .easing( TWEEN.Easing.Elastic.Out )
+       .onUpdate(function(){
+           _this.lineGeometry.vertices[1].x = this.x;
+           _this.lineGeometry.vertices[1].y = this.y;
+           _this.lineGeometry.vertices[1].z = this.z;
+           _this.lineGeometry.verticesNeedUpdate = true;
+       }).start();
 
         /* add to scene */
 
-        this.scene.add(labelSprite);
+        this.scene.add(this.labelSprite);
         this.scene.add(line);
-        this.scene.add(topSprite);
+        this.scene.add(this.topSprite);
 
         // line._globe_multiplier = 1.2; // if normal line, make it 1.2 times the radius in orbit
 
@@ -230,22 +235,76 @@ var Pin = (function(THREE, TWEEN, document){
         return "" + this.lat + "_" + this.lon;
     }
 
-    Pin.prototype.changeAltitude = function(newAltitude){
+    Pin.prototype.changeAltitude = function(altitude){
+        var point = mapPoint(this.lat, this.lon);
+        var _this = this; // arghhhh
 
+       new TWEEN.Tween({altitude: this.altitude})
+       .to( {altitude: altitude}, 1500 )
+       .easing( TWEEN.Easing.Elastic.Out )
+       .onUpdate(function(){
+           if(_this.smokeVisible){
+               _this.smokeProvider.changeAltitude(this.altitude, _this.smokeId);
+           }
+           if(_this.topVisible){
+               _this.topSprite.position.set(point.x * this.altitude, point.y * this.altitude, point.z * this.altitude);
+           }
+           if(_this.labelVisible){
+               _this.labelSprite.position = {x: point.x*this.altitude*1.1, y: point.y*this.altitude + (point.y < 0 ? -15 : 30), z: point.z*this.altitude*1.1};
+           }
+           _this.lineGeometry.vertices[1].x = point.x * this.altitude;
+           _this.lineGeometry.vertices[1].y = point.y * this.altitude;
+           _this.lineGeometry.vertices[1].z = point.z * this.altitude;
+           _this.lineGeometry.verticesNeedUpdate = true;
+
+       })
+       .onComplete(function(){
+           _this.altitude = altitude;
+           
+       }).start();
 
     };
 
     Pin.prototype.hideTop = function(){
+        if(this.topVisible){
+            this.topSprite.material.opacity = 0.0;
+            this.topVisible = false;
+        }
+    };
 
+    Pin.prototype.showTop = function(){
+        if(!this.topVisible){
+            this.topSprite.material.opacity = 1.0;
+            this.topVisible = true;
+        }
     };
 
     Pin.prototype.hideLabel = function(){
+        if(this.labelVisible){
+            this.labelSprite.material.opacity = 0.0;
+            this.labelVisible = false;
+        }
+    };
 
+    Pin.prototype.showLabel = function(){
+        if(!this.labelVisible){
+            this.labelSprite.material.opacity = 1.0;
+            this.labelVisible = true;
+        }
     };
 
     Pin.prototype.hideSmoke = function(){
+        if(this.smokeVisible){
+            this.smokeProvider.extinguish(this.smokeId);
+            this.smokeVisible = false;
+        }
+    };
 
-
+    Pin.prototype.showSmoke = function(){
+        if(!this.smokeVisible){
+            this.smokeId  = this.smokeProvider.setFire(this.lat, this.lon, this.altitude);
+            this.smokeVisible = true;
+        }
     };
 
     return Pin;

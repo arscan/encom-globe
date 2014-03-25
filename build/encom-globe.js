@@ -427,6 +427,189 @@ var Satellite = (function(TextureAnimator, THREE, document){
 
 })(TextureAnimator, THREE, document);
 
+var SmokeProvider = (function(THREE, document){
+
+    var vertexShader = [
+        "#define PI 3.141592653589793238462643",
+        "#define DISTANCE 500.0",
+        "attribute float myStartTime;",
+        "attribute float myStartLat;",
+        "attribute float myStartLon;",
+        "attribute float altitude;",
+        "attribute float active;",
+        "uniform float currentTime;",
+        "uniform vec3 color;",
+        "varying vec4 vColor;",
+        "",
+        "vec3 getPos(float lat, float lon)",
+        "{",
+        "   if (lon < -180.0){",
+        "      lon = lon + 360.0;",
+        "   }",
+        "   float phi = (90.0 - lat) * PI / 180.0;",
+        "   float theta = (180.0 - lon) * PI / 180.0;",
+        "   float x = DISTANCE * sin(phi) * cos(theta) * altitude;",
+        "   float y = DISTANCE * cos(phi) * altitude;",
+        "   float z = DISTANCE * sin(phi) * sin(theta) * altitude;",
+        "   return vec3(x, y, z);",
+        "}",
+        "",
+        "void main()",
+        "{",
+        "   float dt = currentTime - myStartTime;",
+        "   if (dt < 0.0){",
+        "      dt = 0.0;",
+        "   }",
+        "   if (dt > 0.0 && active > 0.0) {",
+        "      dt = mod(dt,1500.0);",
+        "   }",
+        "   float opacity = 1.0 - dt/ 1500.0;",
+        "   if (dt == 0.0 || active == 0.0){",
+        "      opacity = 0.0;",
+        "   }",
+        "   vec3 newPos = getPos(myStartLat, myStartLon - ( dt / 50.0));",
+        "   vColor = vec4( color, opacity );", //     set color associated to vertex; use later in fragment shader.
+        "   vec4 mvPosition = modelViewMatrix * vec4( newPos, 1.0 );",
+        "   gl_PointSize = 2.5 - (dt / 1500.0);",
+        "   gl_Position = projectionMatrix * mvPosition;",
+        "}"
+    ].join("\n");
+
+    var fragmentShader = [
+        "varying vec4 vColor;",     
+        "void main()", 
+        "{",
+        "   float depth = gl_FragCoord.z / gl_FragCoord.w;",
+        "   float fogFactor = smoothstep(1500.0, 2075.0, depth );",
+        "   vec3 fogColor = vec3(0.0);",
+        "   gl_FragColor = mix( vColor, vec4( fogColor, gl_FragColor.w ), fogFactor );",
+        "}"
+    ].join("\n");
+
+    var SmokeProvider = function(scene, _opts){
+
+        /* options that can be passed in */
+        var opts = {
+            smokeCount: 5000,
+            smokePerPin: 30,
+            smokePerSecond: 20
+        }
+
+        if(_opts){
+            for(var i in opts){
+                if(_opts[i] !== undefined){
+                    opts[i] = _opts[i];
+                }
+            }
+        }
+
+        this.opts = opts;
+        this.geometry = new THREE.Geometry();
+        this.attributes = {
+            myStartTime: {type: 'f', value: []},
+            myStartLat: {type: 'f', value: []},
+            myStartLon: {type: 'f', value: []},
+            altitude: {type: 'f', value: []},
+            active: {type: 'f', value: []}
+        };
+
+        this.uniforms = {
+            currentTime: { type: 'f', value: 0.0},
+            color: { type: 'c', value: new THREE.Color("#aaa")},
+        }
+
+        var material = new THREE.ShaderMaterial( {
+            uniforms:       this.uniforms,
+            attributes:     this.attributes,
+            vertexShader:   vertexShader,
+            fragmentShader: fragmentShader,
+            transparent:    true
+        });
+
+        for(var i = 0; i< opts.smokeCount; i++){
+            var vertex = new THREE.Vector3();
+            vertex.set(0,0,0);
+            this.geometry.vertices.push( vertex );
+            this.attributes.myStartTime.value[i] = 0.0;
+            this.attributes.myStartLat.value[i] = 0.0;
+            this.attributes.myStartLon.value[i] = 0.0;
+            this.attributes.altitude.value[i] = 0.0;
+            this.attributes.active.value[i] = 0.0;
+        }
+
+        this.attributes.myStartTime.needsUpdate = true;
+        this.attributes.myStartLat.needsUpdate = true;
+        this.attributes.myStartLon.needsUpdate = true;
+        this.attributes.altitude.needsUpdate = true;
+        this.attributes.active.needsUpdate = true;
+
+        this.smokeIndex = 0;
+        this.totalRunTime = 0;
+
+        scene.add( new THREE.ParticleSystem( this.geometry, material));
+
+    };
+
+    SmokeProvider.prototype.setFire = function(lat, lon, altitude){
+
+        var point = mapPoint(lat, lon);
+
+        /* add the smoke */
+        var startSmokeIndex = this.smokeIndex;
+
+        for(var i = 0; i< this.opts.smokePerPin; i++){
+            this.geometry.vertices[this.smokeIndex].set(point.x * altitude, point.y * altitude, point.z * altitude);
+            this.geometry.verticesNeedUpdate = true;
+            this.attributes.myStartTime.value[this.smokeIndex] = this.totalRunTime + (1000*i/this.opts.smokePerSecond + 1500);
+            this.attributes.myStartLat.value[this.smokeIndex] = lat;
+            this.attributes.myStartLon.value[this.smokeIndex] = lon;
+            this.attributes.altitude.value[this.smokeIndex] = altitude;
+            this.attributes.active.value[this.smokeIndex] = 1.0;
+
+            this.attributes.myStartTime.needsUpdate = true;
+            this.attributes.myStartLat.needsUpdate = true;
+            this.attributes.myStartLon.needsUpdate = true;
+            this.attributes.altitude.needsUpdate = true;
+            this.attributes.active.needsUpdate = true;
+
+            this.smokeIndex++;
+            this.smokeIndex = this.smokeIndex % this.geometry.vertices.length;
+        }
+
+
+        return startSmokeIndex;
+
+    };
+
+    SmokeProvider.prototype.extinguish = function(index){
+        for(var i = 0; i< this.opts.smokePerPin; i++){
+            this.attributes.active.value[(i + index) % this.opts.smokeCount] = 0.0;
+            this.attributes.active.needsUpdate = true;
+        }
+    };
+
+    SmokeProvider.prototype.changeAltitude = function(altitude, index){
+        for(var i = 0; i< this.opts.smokePerPin; i++){
+            this.attributes.altitude.value[(i + index) % this.opts.smokeCount] = altitude;
+            this.attributes.altitude.needsUpdate = true;
+        }
+
+    };
+
+    SmokeProvider.prototype.tick = function(totalRunTime){
+        this.totalRunTime = totalRunTime;
+        this.uniforms.currentTime.value = this.totalRunTime;
+    };
+
+
+
+    return SmokeProvider;
+
+})(THREE, document);
+
+
+
+
 var Pin = (function(THREE, TWEEN, document){
 
     var createTopCanvas = function(color) {
@@ -442,7 +625,7 @@ var Pin = (function(THREE, TWEEN, document){
 
     };
 
-    var Pin = function(lat, lon, text, altitude, scene, _opts){
+    var Pin = function(lat, lon, text, altitude, scene, smokeProvider, _opts){
 
         /* options that can be passed in */
         var opts = {
@@ -457,15 +640,12 @@ var Pin = (function(THREE, TWEEN, document){
             showSmoke: (text.length > 0)
         }
 
-        var lineGeometry,
-           lineMaterial,
+        var lineMaterial,
            labelCanvas,
            labelTexture,
            labelMaterial,
-           labelSprite,
            topTexture,
            topMaterial,
-           topSprite,
            point,
            line;
 
@@ -474,6 +654,7 @@ var Pin = (function(THREE, TWEEN, document){
         this.text = text;
         this.altitude = altitude;
         this.scene = scene;
+        this.smokeProvider = smokeProvider;
 
         if(_opts){
             for(var i in opts){
@@ -491,7 +672,7 @@ var Pin = (function(THREE, TWEEN, document){
 
         /* the line */
 
-        lineGeometry = new THREE.Geometry();
+        this.lineGeometry = new THREE.Geometry();
         lineMaterial = new THREE.LineBasicMaterial({
             color: opts.lineColor,
             linewidth: opts.lineWidth
@@ -499,9 +680,9 @@ var Pin = (function(THREE, TWEEN, document){
 
         point = mapPoint(lat,lon);
 
-        lineGeometry.vertices.push(new THREE.Vector3(point.x, point.y, point.z));
-        lineGeometry.vertices.push(new THREE.Vector3(point.x, point.y, point.z));
-        line = new THREE.Line(lineGeometry, lineMaterial);
+        this.lineGeometry.vertices.push(new THREE.Vector3(point.x, point.y, point.z));
+        this.lineGeometry.vertices.push(new THREE.Vector3(point.x, point.y, point.z));
+        line = new THREE.Line(this.lineGeometry, lineMaterial);
 
         /* the label */
 
@@ -517,18 +698,23 @@ var Pin = (function(THREE, TWEEN, document){
            fog: true
         });
 
-       labelSprite = new THREE.Sprite(labelMaterial);
-       labelSprite.position = {x: point.x*altitude*1.1, y: point.y*altitude + (point.y < 0 ? -15 : 30), z: point.z*altitude*1.1};
-       labelSprite.scale.set(labelCanvas.width, labelCanvas.height);
+       this.labelSprite = new THREE.Sprite(labelMaterial);
+       this.labelSprite.position = {x: point.x*altitude*1.1, y: point.y*altitude + (point.y < 0 ? -15 : 30), z: point.z*altitude*1.1};
+       this.labelSprite.scale.set(labelCanvas.width, labelCanvas.height);
 
        /* the top */
 
        topTexture = new THREE.Texture(createTopCanvas(opts.topColor));
        topTexture.needsUpdate = true;
        topMaterial = new THREE.SpriteMaterial({map: topTexture, depthTest: false, fog: true, opacity: 0});
-       topSprite = new THREE.Sprite(topMaterial);
-       topSprite.scale.set(20, 20);
-       topSprite.position.set(point.x * altitude, point.y * altitude, point.z * altitude);
+       this.topSprite = new THREE.Sprite(topMaterial);
+       this.topSprite.scale.set(20, 20);
+       this.topSprite.position.set(point.x * altitude, point.y * altitude, point.z * altitude);
+
+       /* the smoke */
+       if(this.smokeVisible){
+           this.smokeId = smokeProvider.setFire(lat, lon, altitude);
+       }
 
        /* intro animations */
 
@@ -544,21 +730,23 @@ var Pin = (function(THREE, TWEEN, document){
                .start();
        }
 
-        new TWEEN.Tween(point)
-            .to( {x: point.x*altitude, y: point.y*altitude, z: point.z*altitude}, 1500 )
-            .easing( TWEEN.Easing.Elastic.InOut )
-            .onUpdate(function(){
-                lineGeometry.vertices[1].x = this.x;
-                lineGeometry.vertices[1].y = this.y;
-                lineGeometry.vertices[1].z = this.z;
-                lineGeometry.verticesNeedUpdate = true;
-            }).start();
+       var _this = this; //arghhh
+
+       new TWEEN.Tween(point)
+       .to( {x: point.x*altitude, y: point.y*altitude, z: point.z*altitude}, 1500 )
+       .easing( TWEEN.Easing.Elastic.Out )
+       .onUpdate(function(){
+           _this.lineGeometry.vertices[1].x = this.x;
+           _this.lineGeometry.vertices[1].y = this.y;
+           _this.lineGeometry.vertices[1].z = this.z;
+           _this.lineGeometry.verticesNeedUpdate = true;
+       }).start();
 
         /* add to scene */
 
-        this.scene.add(labelSprite);
+        this.scene.add(this.labelSprite);
         this.scene.add(line);
-        this.scene.add(topSprite);
+        this.scene.add(this.topSprite);
 
         // line._globe_multiplier = 1.2; // if normal line, make it 1.2 times the radius in orbit
 
@@ -659,22 +847,76 @@ var Pin = (function(THREE, TWEEN, document){
         return "" + this.lat + "_" + this.lon;
     }
 
-    Pin.prototype.changeAltitude = function(newAltitude){
+    Pin.prototype.changeAltitude = function(altitude){
+        var point = mapPoint(this.lat, this.lon);
+        var _this = this; // arghhhh
 
+       new TWEEN.Tween({altitude: this.altitude})
+       .to( {altitude: altitude}, 1500 )
+       .easing( TWEEN.Easing.Elastic.Out )
+       .onUpdate(function(){
+           if(_this.smokeVisible){
+               _this.smokeProvider.changeAltitude(this.altitude, _this.smokeId);
+           }
+           if(_this.topVisible){
+               _this.topSprite.position.set(point.x * this.altitude, point.y * this.altitude, point.z * this.altitude);
+           }
+           if(_this.labelVisible){
+               _this.labelSprite.position = {x: point.x*this.altitude*1.1, y: point.y*this.altitude + (point.y < 0 ? -15 : 30), z: point.z*this.altitude*1.1};
+           }
+           _this.lineGeometry.vertices[1].x = point.x * this.altitude;
+           _this.lineGeometry.vertices[1].y = point.y * this.altitude;
+           _this.lineGeometry.vertices[1].z = point.z * this.altitude;
+           _this.lineGeometry.verticesNeedUpdate = true;
+
+       })
+       .onComplete(function(){
+           _this.altitude = altitude;
+           
+       }).start();
 
     };
 
     Pin.prototype.hideTop = function(){
+        if(this.topVisible){
+            this.topSprite.material.opacity = 0.0;
+            this.topVisible = false;
+        }
+    };
 
+    Pin.prototype.showTop = function(){
+        if(!this.topVisible){
+            this.topSprite.material.opacity = 1.0;
+            this.topVisible = true;
+        }
     };
 
     Pin.prototype.hideLabel = function(){
+        if(this.labelVisible){
+            this.labelSprite.material.opacity = 0.0;
+            this.labelVisible = false;
+        }
+    };
 
+    Pin.prototype.showLabel = function(){
+        if(!this.labelVisible){
+            this.labelSprite.material.opacity = 1.0;
+            this.labelVisible = true;
+        }
     };
 
     Pin.prototype.hideSmoke = function(){
+        if(this.smokeVisible){
+            this.smokeProvider.extinguish(this.smokeId);
+            this.smokeVisible = false;
+        }
+    };
 
-
+    Pin.prototype.showSmoke = function(){
+        if(!this.smokeVisible){
+            this.smokeId  = this.smokeProvider.setFire(this.lat, this.lon, this.altitude);
+            this.smokeVisible = true;
+        }
     };
 
     return Pin;
@@ -1193,11 +1435,11 @@ var Globe = (function(THREE, TWEEN, document){
 
         marker.active = false;
 
-        for(var i = marker.startSmokeIndex; i< marker.smokeCount + marker.startSmokeIndex; i++){
-            var realI = i % _this.smokeAttributes.active.value.length;
-            _this.smokeAttributes.active.value[realI] = 0.0;
-            _this.smokeAttributes.active.needsUpdate = true;
-        }
+        // for(var i = marker.startSmokeIndex; i< marker.smokeCount + marker.startSmokeIndex; i++){
+        //     var realI = i % _this.smokeAttributes.active.value.length;
+        //     _this.smokeAttributes.active.value[realI] = 0.0;
+        //     _this.smokeAttributes.active.needsUpdate = true;
+        // }
 
         new TWEEN.Tween({posx: pos.x, posy: pos.y, posz: pos.z, opacity: 1})
         .to( {posx: pos.x/scaleDownBy, posy: pos.y/scaleDownBy, posz: pos.z/scaleDownBy, opacity: 0}, 1000 )
@@ -1290,7 +1532,7 @@ var Globe = (function(THREE, TWEEN, document){
 
         this.width = width;
         this.height = height;
-        this.smokeIndex = 0;
+        // this.smokeIndex = 0;
         this.points = [];
         this.introLines = new THREE.Object3D();
         this.markers = [];
@@ -1416,103 +1658,107 @@ var Globe = (function(THREE, TWEEN, document){
                     var waveStart = Math.floor(numFrames/8);
                     var numWaves = 8;
                     var repeatAt = Math.floor(numFrames-2*(numFrames-waveStart)/numWaves)+1;
-                    _this.satelliteCanvas = createSatelliteCanvas.call(this, numFrames, pixels, rows, waveStart, numWaves);
+                    // _this.satelliteCanvas = createSatelliteCanvas.call(this, numFrames, pixels, rows, waveStart, numWaves);
+
+                    // create the smoke particles
+
+                    _this.smokeProvider = new SmokeProvider(_this.scene);
 
                     // initialize the smoke
                     // create particle system
-                    _this.smokeParticleGeometry = new THREE.Geometry();
+                    // _this.smokeParticleGeometry = new THREE.Geometry();
 
-                    _this.smokeVertexShader = [
-                        "#define PI 3.141592653589793238462643",
-                        "#define DISTANCE 600.0",
-                        "attribute float myStartTime;",
-                        "attribute float myStartLat;",
-                        "attribute float myStartLon;",
-                        "attribute float active;",
-                        "uniform float currentTime;",
-                        "uniform vec3 color;",
-                        "varying vec4 vColor;",
-                        "",
-                        "vec3 getPos(float lat, float lon)",
-                        "{",
-                        "   if (lon < -180.0){",
-                        "      lon = lon + 360.0;",
-                        "   }",
-                        "   float phi = (90.0 - lat) * PI / 180.0;",
-                        "   float theta = (180.0 - lon) * PI / 180.0;",
-                        "   float x = DISTANCE * sin(phi) * cos(theta);",
-                        "   float y = DISTANCE * cos(phi);",
-                        "   float z = DISTANCE * sin(phi) * sin(theta);",
-                        "   return vec3(x, y, z);",
-                        "}",
-                        "",
-                        "void main()",
-                        "{",
-                        "   float dt = currentTime - myStartTime;",
-                        "   if (dt < 0.0){",
-                        "      dt = 0.0;",
-                        "   }",
-                        "   if (dt > 0.0 && active > 0.0) {",
-                        "      dt = mod(dt,1500.0);",
-                        "   }",
-                        "   float opacity = 1.0 - dt/ 1500.0;",
-                        "   if (dt == 0.0 || active == 0.0){",
-                        "      opacity = 0.0;",
-                        "   }",
-                        "   vec3 newPos = getPos(myStartLat, myStartLon - ( dt / 50.0));",
-                        "   vColor = vec4( color, opacity );", //     set color associated to vertex; use later in fragment shader.
-                        "   vec4 mvPosition = modelViewMatrix * vec4( newPos, 1.0 );",
-                        "   gl_PointSize = 2.5 - (dt / 1500.0);",
-                        "   gl_Position = projectionMatrix * mvPosition;",
-                        "}"
-                    ].join("\n");
+                    // _this.smokeVertexShader = [
+                    //     "#define PI 3.141592653589793238462643",
+                    //     "#define DISTANCE 600.0",
+                    //     "attribute float myStartTime;",
+                    //     "attribute float myStartLat;",
+                    //     "attribute float myStartLon;",
+                    //     "attribute float active;",
+                    //     "uniform float currentTime;",
+                    //     "uniform vec3 color;",
+                    //     "varying vec4 vColor;",
+                    //     "",
+                    //     "vec3 getPos(float lat, float lon)",
+                    //     "{",
+                    //     "   if (lon < -180.0){",
+                    //     "      lon = lon + 360.0;",
+                    //     "   }",
+                    //     "   float phi = (90.0 - lat) * PI / 180.0;",
+                    //     "   float theta = (180.0 - lon) * PI / 180.0;",
+                    //     "   float x = DISTANCE * sin(phi) * cos(theta);",
+                    //     "   float y = DISTANCE * cos(phi);",
+                    //     "   float z = DISTANCE * sin(phi) * sin(theta);",
+                    //     "   return vec3(x, y, z);",
+                    //     "}",
+                    //     "",
+                    //     "void main()",
+                    //     "{",
+                    //     "   float dt = currentTime - myStartTime;",
+                    //     "   if (dt < 0.0){",
+                    //     "      dt = 0.0;",
+                    //     "   }",
+                    //     "   if (dt > 0.0 && active > 0.0) {",
+                    //     "      dt = mod(dt,1500.0);",
+                    //     "   }",
+                    //     "   float opacity = 1.0 - dt/ 1500.0;",
+                    //     "   if (dt == 0.0 || active == 0.0){",
+                    //     "      opacity = 0.0;",
+                    //     "   }",
+                    //     "   vec3 newPos = getPos(myStartLat, myStartLon - ( dt / 50.0));",
+                    //     "   vColor = vec4( color, opacity );", //     set color associated to vertex; use later in fragment shader.
+                    //     "   vec4 mvPosition = modelViewMatrix * vec4( newPos, 1.0 );",
+                    //     "   gl_PointSize = 2.5 - (dt / 1500.0);",
+                    //     "   gl_Position = projectionMatrix * mvPosition;",
+                    //     "}"
+                    // ].join("\n");
 
-                    _this.smokeFragmentShader = [
-                        "varying vec4 vColor;",     
-                        "void main()", 
-                        "{",
-                        "   float depth = gl_FragCoord.z / gl_FragCoord.w;",
-                        "   float fogFactor = smoothstep(" + (parseInt(_this.cameraDistance)-200) +".0," + (parseInt(_this.cameraDistance+375)) +".0, depth );",
-                        "   vec3 fogColor = vec3(0.0);",
-                        "   gl_FragColor = mix( vColor, vec4( fogColor, gl_FragColor.w ), fogFactor );",
-                        "}"
-                    ].join("\n");
+                    // _this.smokeFragmentShader = [
+                    //     "varying vec4 vColor;",     
+                    //     "void main()", 
+                    //     "{",
+                    //     "   float depth = gl_FragCoord.z / gl_FragCoord.w;",
+                    //     "   float fogFactor = smoothstep(" + (parseInt(_this.cameraDistance)-200) +".0," + (parseInt(_this.cameraDistance+375)) +".0, depth );",
+                    //     "   vec3 fogColor = vec3(0.0);",
+                    //     "   gl_FragColor = mix( vColor, vec4( fogColor, gl_FragColor.w ), fogFactor );",
+                    //     "}"
+                    // ].join("\n");
 
-                    _this.smokeAttributes = {
-                        myStartTime: {type: 'f', value: []},
-                        myStartLat: {type: 'f', value: []},
-                        myStartLon: {type: 'f', value: []},
-                        active: {type: 'f', value: []}
-                    };
+                    // _this.smokeAttributes = {
+                    //     myStartTime: {type: 'f', value: []},
+                    //     myStartLat: {type: 'f', value: []},
+                    //     myStartLon: {type: 'f', value: []},
+                    //     active: {type: 'f', value: []}
+                    // };
 
-                    _this.smokeUniforms = {
-                        currentTime: { type: 'f', value: 0.0},
-                        color: { type: 'c', value: new THREE.Color("#aaa")},
-                    }
+                    // _this.smokeUniforms = {
+                    //     currentTime: { type: 'f', value: 0.0},
+                    //     color: { type: 'c', value: new THREE.Color("#aaa")},
+                    // }
 
-                    _this.smokeMaterial = new THREE.ShaderMaterial( {
-                        uniforms:       _this.smokeUniforms,
-                        attributes:     _this.smokeAttributes,
-                        vertexShader:   _this.smokeVertexShader,
-                        fragmentShader: _this.smokeFragmentShader,
-                        transparent:    true
-                    });
+                    // _this.smokeMaterial = new THREE.ShaderMaterial( {
+                    //     uniforms:       _this.smokeUniforms,
+                    //     attributes:     _this.smokeAttributes,
+                    //     vertexShader:   _this.smokeVertexShader,
+                    //     fragmentShader: _this.smokeFragmentShader,
+                    //     transparent:    true
+                    // });
 
-                    for(var i = 0; i< 2000; i++){
-                        var vertex = new THREE.Vector3();
-                        vertex.set(0,0,_this.cameraDistance+1);
-                        _this.smokeParticleGeometry.vertices.push( vertex );
-                        _this.smokeAttributes.myStartTime.value[i] = 0.0;
-                        _this.smokeAttributes.myStartLat.value[i] = 0.0;
-                        _this.smokeAttributes.myStartLon.value[i] = 0.0;
-                        _this.smokeAttributes.active.value[i] = 0.0;
-                    }
-                    _this.smokeAttributes.myStartTime.needsUpdate = true;
-                    _this.smokeAttributes.myStartLat.needsUpdate = true;
-                    _this.smokeAttributes.myStartLon.needsUpdate = true;
-                    _this.smokeAttributes.active.needsUpdate = true;
+                    // for(var i = 0; i< 2000; i++){
+                    //     var vertex = new THREE.Vector3();
+                    //     vertex.set(0,0,_this.cameraDistance+1);
+                    //     _this.smokeParticleGeometry.vertices.push( vertex );
+                    //     _this.smokeAttributes.myStartTime.value[i] = 0.0;
+                    //     _this.smokeAttributes.myStartLat.value[i] = 0.0;
+                    //     _this.smokeAttributes.myStartLon.value[i] = 0.0;
+                    //     _this.smokeAttributes.active.value[i] = 0.0;
+                    // }
+                    // _this.smokeAttributes.myStartTime.needsUpdate = true;
+                    // _this.smokeAttributes.myStartLat.needsUpdate = true;
+                    // _this.smokeAttributes.myStartLon.needsUpdate = true;
+                    // _this.smokeAttributes.active.needsUpdate = true;
 
-                    _this.scene.add( new THREE.ParticleSystem( _this.smokeParticleGeometry, _this.smokeMaterial));
+                    // _this.scene.add( new THREE.ParticleSystem( _this.smokeParticleGeometry, _this.smokeMaterial));
 
 
                     createParticles.call(_this);
@@ -1543,7 +1789,7 @@ var Globe = (function(THREE, TWEEN, document){
            altitude -= Math.random() * .1;
         }
 
-        var pin = new Pin(lat, lng, text, altitude, this.scene);
+        var pin = new Pin(lat, lng, text, altitude, this.scene, this.smokeProvider);
 
 
         return;
@@ -1928,12 +2174,14 @@ var Globe = (function(THREE, TWEEN, document){
 
         // do the shaders
 
-        this.smokeUniforms.currentTime.value = this.totalRunTime;
+        // this.smokeUniforms.currentTime.value = this.totalRunTime;
         this.pointUniforms.currentTime.value = this.totalRunTime;
 
+        this.smokeProvider.tick(this.totalRunTime);
+
+        // updateSatellites.call(this, renderTime);
         this.camera.lookAt( this.scene.position );
         this.renderer.render( this.scene, this.camera );
-        updateSatellites.call(this, renderTime);
 
     }
 
