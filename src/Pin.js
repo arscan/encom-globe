@@ -43,6 +43,7 @@ var Pin = (function(THREE, TWEEN, document){
         this.altitude = altitude;
         this.scene = scene;
         this.smokeProvider = smokeProvider;
+        this.dateCreated = Date.now();
 
         if(_opts){
             for(var i in opts){
@@ -70,7 +71,7 @@ var Pin = (function(THREE, TWEEN, document){
 
         this.lineGeometry.vertices.push(new THREE.Vector3(point.x, point.y, point.z));
         this.lineGeometry.vertices.push(new THREE.Vector3(point.x, point.y, point.z));
-        line = new THREE.Line(this.lineGeometry, lineMaterial);
+        this.line = new THREE.Line(this.lineGeometry, lineMaterial);
 
         /* the label */
 
@@ -133,101 +134,8 @@ var Pin = (function(THREE, TWEEN, document){
         /* add to scene */
 
         this.scene.add(this.labelSprite);
-        this.scene.add(line);
+        this.scene.add(this.line);
         this.scene.add(this.topSprite);
-
-        // line._globe_multiplier = 1.2; // if normal line, make it 1.2 times the radius in orbit
-
-        // var existingMarkers = findNearbyMarkers.call(_this, lat, lon);
-        // var allOld = true;
-        // for(var i = 0; i< existingMarkers.length; i++){
-        //     if(Date.now() - existingMarkers[i].creationDate < 10000){
-        //         allOld = false;
-        //     }
-        // }
-        // this.markerIndex[lat + "-" + lon] = true;
-
-        /*
-        if(existingMarkers.length == 0 || allOld){
-            // get rid of old ones
-
-            for(var i = 0; i< existingMarkers.length; i++){
-                removeMarker.call(this, existingMarkers[i]);
-            }
-
-            // create the new one
-
-            var textSprite = createLabel.call(this,text, point.x*1.18, point.y*1.18, point.z*1.18, 18, "#fff", this.font);
-            this.scene.add(textSprite);
-
-            var markerTopMaterial = new THREE.SpriteMaterial({map: _this.markerTopTexture, color: 0xFD7D8, depthTest: false, fog: true, opacity: text.length > 0});
-            var markerTopSprite = new THREE.Sprite(markerTopMaterial);
-            markerTopSprite.scale.set(15, 15);
-            markerTopSprite.position.set(point.x*1.2, point.y*1.2, point.z*1.2);
-
-
-            var startSmokeIndex = _this.smokeIndex;
-
-            for(var i = 0; i< 30; i++){
-                _this.smokeParticleGeometry.vertices[_this.smokeIndex].set(point.x * 1.2, point.y * 1.2, point.z * 1.2);
-                _this.smokeParticleGeometry.verticesNeedUpdate = true;
-                _this.smokeAttributes.myStartTime.value[_this.smokeIndex] = _this.totalRunTime + (i*50 + 1500);
-                _this.smokeAttributes.myStartLat.value[_this.smokeIndex] = lat;
-                _this.smokeAttributes.myStartLon.value[_this.smokeIndex] = lon;
-                _this.smokeAttributes.active.value[_this.smokeIndex] = (text.length > 0 ? 1.0 : 0.0);
-                _this.smokeAttributes.myStartTime.needsUpdate = true;
-                _this.smokeAttributes.myStartLat.needsUpdate = true;
-                _this.smokeAttributes.myStartLon.needsUpdate = true;
-                _this.smokeAttributes.active.needsUpdate = true;
-
-                _this.smokeIndex++;
-                _this.smokeIndex = _this.smokeIndex % _this.smokeParticleGeometry.vertices.length;
-            }
-
-            var m = {
-                line: line,
-                label: textSprite,
-                top: markerTopSprite,
-                startSmokeIndex: startSmokeIndex,
-                smokeCount: 30,
-                active: true,
-                creationDate: Date.now(),
-                latlon: lat + "-" + lon
-            };
-
-            this.markers.push(m);
-
-            registerMarker.call(_this,m, lat, lon);
-
-            setTimeout(function(){
-                _this.scene.add(markerTopSprite);
-            }, 1500)
-
-        } else {
-            line._globe_multiplier = 1 + (.05 + Math.random() * .15); // randomize how far out
-            this.quills.push({
-                line: line,
-                latlon: lat + "-" + lon
-            });
-
-
-            if(this.quills.length > this.maxQuills){
-                removeQuill.call(this, this.quills.shift());
-            }
-        }
-
-        new TWEEN.Tween(point)
-        .to( {x: point.x*line._globe_multiplier, y: point.y*line._globe_multiplier, z: point.z*line._globe_multiplier}, 1500 )
-        .easing( TWEEN.Easing.Elastic.InOut )
-        .onUpdate(function(){
-            markerGeometry.vertices[1].x = this.x;
-            markerGeometry.vertices[1].y = this.y;
-            markerGeometry.vertices[1].z = this.z;
-            markerGeometry.verticesNeedUpdate = true;
-        })
-        .start();
-       */
-
 
     };
 
@@ -304,6 +212,21 @@ var Pin = (function(THREE, TWEEN, document){
         if(!this.smokeVisible){
             this.smokeId  = this.smokeProvider.setFire(this.lat, this.lon, this.altitude);
             this.smokeVisible = true;
+        }
+    };
+
+    Pin.prototype.age = function(){
+        return Date.now() - this.dateCreated;
+
+    };
+
+    Pin.prototype.remove = function(){
+        this.scene.remove(this.labelSprite);
+        this.scene.remove(this.line);
+        this.scene.remove(this.topSprite);
+
+        if(this.smokeVisible){
+            this.smokeProvider.extinguish(this.smokeId);
         }
     };
 
