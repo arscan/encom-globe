@@ -1558,7 +1558,7 @@ var Globe = (function(THREE, TWEEN, document){
         this.data.sort(function(a,b){return (b.lng - b.label.length * 2) - (a.lng - a.label.length * 2)});
 
         for(var i = 0; i< this.data.length; i++){
-            this.data[i].when = this.introLinesDuration*((180+this.data[i].lng)/360.0); 
+            this.data[i].when = this.introLinesDuration*((180+this.data[i].lng)/360.0) + 500; 
         }
 
     }
