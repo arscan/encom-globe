@@ -13,13 +13,13 @@ body {
     padding: 6px;
 }
 
-#marker-lat-lng *{
+#pin-lat-lon *{
     width:30%;
     margin-right: 10px;
 
 }
 
-#satellite-lat-lng input{
+#satellite-lat-lon input{
     width:30%;
     margin-right: 10px;
 
@@ -29,7 +29,7 @@ body {
     display: none;
 }
 
-#connected-input {
+#markers-input {
     display: none;
 }
 

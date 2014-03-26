@@ -37,7 +37,7 @@ var Globe = (function(THREE, TWEEN, document){
             return;
         }
         while(this.data.length > 0 && this.firstRunTime + (next = this.data.pop()).when < Date.now()){
-            this.addMarker(next.lat, next.lng, next.label);
+            this.addPin(next.lat, next.lng, next.label);
         }
 
         if(this.firstRunTime + next.when >= Date.now()){
@@ -45,225 +45,6 @@ var Globe = (function(THREE, TWEEN, document){
         }
     };
 
-    var createLabel = function(text, x, y, z, size, color, font, underlineColor) {
-
-        var canvas = document.createElement("canvas");
-        var context = canvas.getContext("2d");
-        context.font = size + "pt " + font;
-
-        var textWidth = context.measureText(text).width;
-
-        canvas.width = textWidth;
-        canvas.height = size + 10;
-
-        // better if canvases have even heights
-        if(canvas.width % 2){
-            canvas.width++;
-        }
-        if(canvas.height % 2){
-            canvas.height++;
-        }
-
-        if(underlineColor){
-            canvas.height += 30;
-        }
-        context.font = size + "pt " + font;
-
-        context.textAlign = "center";
-        context.textBaseline = "middle";
-
-        context.strokeStyle = 'black';
-
-        context.miterLimit = 2;
-        context.lineJoin = 'circle';
-        context.lineWidth = 6;
-
-        context.strokeText(text, canvas.width / 2, canvas.height / 2);
-
-        context.lineWidth = 2;
-
-        context.fillStyle = color;
-        context.fillText(text, canvas.width / 2, canvas.height / 2);
-
-        if(underlineColor){
-            context.strokeStyle=underlineColor;
-            context.lineWidth=4;
-            context.beginPath();
-            context.moveTo(0, canvas.height-10);
-            context.lineTo(canvas.width-1, canvas.height-10);
-            context.stroke();
-        }
-
-        var texture = new THREE.Texture(canvas);
-        texture.needsUpdate = true;
-
-        var material = new THREE.SpriteMaterial({
-            map : texture,
-            useScreenCoordinates: false,
-            opacity:0,
-            depthTest: false,
-            fog: true
-
-        });
-
-        var sprite = new THREE.Sprite(material);
-        sprite.position = {x: x*1.1, y: y + (y < 0 ? -15 : 30), z: z*1.1};
-        sprite.scale.set(canvas.width, canvas.height);
-        new TWEEN.Tween( {opacity: 0})
-        .to( {opacity: 1}, 500 )
-        .onUpdate(function(){
-            material.opacity = this.opacity
-        }).delay(1000)
-        .start();
-
-        return sprite;
-
-    }
-
-    var createSatelliteCanvas = function(numFrames, pixels, rows, waveStart, numWaves) {
-
-        var cols = numFrames / rows;
-        var waveInterval = Math.floor((numFrames-waveStart)/numWaves);
-        var waveDist = pixels - 25; // width - center of satellite
-        var distPerFrame = waveDist / (numFrames-waveStart)
-        var offsetx = 0;
-        var offsety = 0;
-        var curRow = 0;
-
-        return renderToCanvas(numFrames * pixels / rows, pixels * rows, function(ctx){
-
-            for(var i = 0; i< numFrames; i++){
-                if(i - curRow * cols >= cols){
-                    offsetx = 0;
-                    offsety += pixels;
-                    curRow++;
-                }
-
-                var centerx = offsetx + 25;
-                var centery = offsety + Math.floor(pixels/2);
-
-                /* white circle around red core */
-                // i have between 0 and wavestart to fade in
-                // i have between wavestart and  waveend - (time between waves*2) 
-                // to do a full spin close and then back open
-                // i have between waveend-2*(timebetween waves)/2 and waveend to rotate Math.PI/4 degrees
-                // this is probably the ugliest code in all of here -- basically I just messed arund with stuff until it looked ok
-
-                ctx.lineWidth=2;
-                ctx.strokeStyle="#FFFFFF";
-                var buffer=Math.PI/16;
-                var start = -Math.PI + Math.PI/4;
-                var radius = 8;
-                var repeatAt = Math.floor(numFrames-2*(numFrames-waveStart)/numWaves)+1;
-
-                /* fade in and out */
-                if(i<waveStart){
-                    radius = radius*i/waveStart;
-                }
-
-                var swirlDone = Math.floor((repeatAt-waveStart) / 2) + waveStart;
-
-                for(var n = 0; n < 4; n++){
-                    ctx.beginPath();
-
-                    if(i < waveStart || i>=numFrames){
-
-                        ctx.arc(centerx, centery, radius,n* Math.PI/2 + start+buffer, n*Math.PI/2 + start+Math.PI/2-2*buffer);
-
-                    } else if(i > waveStart && i < swirlDone){
-                        var totalTimeToComplete = swirlDone - waveStart;
-                        var distToGo = 3*Math.PI/2;
-                        var currentStep = (i-waveStart);
-                        var movementPerStep = distToGo / totalTimeToComplete;
-
-                        var startAngle = -Math.PI + Math.PI/4 + buffer + movementPerStep*currentStep;
-
-                        ctx.arc(centerx, centery, radius,Math.max(n*Math.PI/2 + start,startAngle), Math.max(n*Math.PI/2 + start + Math.PI/2 - 2*buffer, startAngle +Math.PI/2 - 2*buffer));
-
-                    } else if(i >= swirlDone && i< repeatAt){
-                        var totalTimeToComplete = repeatAt - swirlDone;
-                        var distToGo = n*2*Math.PI/4;
-                        var currentStep = (i-swirlDone);
-                        var movementPerStep = distToGo / totalTimeToComplete;
-
-
-                        var startAngle = Math.PI/2 + Math.PI/4 + buffer + movementPerStep*currentStep;
-                        ctx.arc(centerx, centery, radius,startAngle, startAngle + Math.PI/2 - 2*buffer);
-
-                    } else if(i >= repeatAt && i < (numFrames-repeatAt)/2 + repeatAt){
-
-                        var totalTimeToComplete = (numFrames-repeatAt)/2;
-                        var distToGo = Math.PI/2;
-                        var currentStep = (i-repeatAt);
-                        var movementPerStep = distToGo / totalTimeToComplete;
-                        var startAngle = n*(Math.PI/2)+ Math.PI/4 + buffer + movementPerStep*currentStep;
-
-                        ctx.arc(centerx, centery, radius,startAngle, startAngle + Math.PI/2 - 2*buffer);
-
-                    } else{
-                        ctx.arc(centerx, centery, radius,n* Math.PI/2 + start+buffer, n*Math.PI/2 + start+Math.PI/2-2*buffer);
-                    }
-                    ctx.stroke();
-                }
-
-                // frame i'm on * distance per frame
-
-                /* waves going out */
-                var frameOn;
-
-                for(var wi = 0; wi<numWaves; wi++){
-                    frameOn = i-(waveInterval*wi)-waveStart;
-                    if(frameOn > 0 && frameOn * distPerFrame < pixels - 25){
-                        ctx.strokeStyle="rgba(255,255,255," + (.9-frameOn*distPerFrame/(pixels-25)) + ")";
-                        ctx.lineWidth=2;
-                        ctx.beginPath();
-                        ctx.arc(centerx, centery, frameOn * distPerFrame, -Math.PI/12, Math.PI/12);
-                        ctx.stroke();
-                    }
-                }
-                /* red circle in middle */
-
-                ctx.fillStyle="#000";
-                ctx.beginPath();
-                ctx.arc(centerx,centery,3,0,2*Math.PI);
-                ctx.fill();
-
-                ctx.strokeStyle="#FF0000";
-                ctx.lineWidth=2;
-                ctx.beginPath();
-                if(i<waveStart){
-                    ctx.arc(centerx,centery,3*i/waveStart,0,2*Math.PI);
-                } else {
-                    ctx.arc(centerx,centery,3,0,2*Math.PI);
-                }
-                ctx.stroke();
-
-                offsetx += pixels;
-            }
-
-        });
-
-    };
-
-    var createSpecialMarkerCanvas = function() {
-        var markerWidth = 100,
-        markerHeight = 100;
-
-        return renderToCanvas(markerWidth, markerHeight, function(ctx){
-            ctx.strokeStyle="#FFCC00";
-            ctx.lineWidth=3;
-            ctx.beginPath();
-            ctx.arc(markerWidth/2, markerHeight/2, markerWidth/3+10, 0, 2* Math.PI);
-            ctx.stroke();
-
-            ctx.fillStyle="#FFCC00";
-            ctx.beginPath();
-            ctx.arc(markerWidth/2, markerHeight/2, markerWidth/4, 0, 2* Math.PI);
-            ctx.fill();
-
-        });
-
-    };
 
     var createParticles = function(){
 
@@ -844,17 +625,12 @@ var Globe = (function(THREE, TWEEN, document){
             }
         };
 
-        this.markerTopTexture = new THREE.ImageUtils.loadTexture( 'resources/markertop.png', undefined, registerCallback());
-
-        this.specialMarkerTexture = new THREE.Texture(createSpecialMarkerCanvas.call(this));
-        this.specialMarkerTexture.needsUpdate = true;
-
         img.addEventListener('load', registerCallback());
 
         img.src = this.mapUrl;
     };
 
-    Globe.prototype.addMarker = function(lat, lng, text){
+    Globe.prototype.addPin = function(lat, lng, text){
 
         var altitude = 1.2;
 
@@ -987,140 +763,11 @@ var Globe = (function(THREE, TWEEN, document){
 
     }
 
-    Globe.prototype.addConnectedPoints = function(lat1, lng1, text1, lat2, lng2, text2){
+    Globe.prototype.addMarker = function(lat, lon, text, previous){
 
-        var _this = this;
+        var marker = new Marker(lat, lon, text, 1.2, previous, this.scene);
 
-        // fix the types if i can
-
-        lat1 = parseFloat(lat1);
-        lng1 = parseFloat(lng1);
-        lat2 = parseFloat(lat2);
-        lng2 = parseFloat(lng2);
-
-        var point1 = mapPoint(lat1,lng1);
-        var point2 = mapPoint(lat2,lng2);
-
-        var markerMaterial = new THREE.SpriteMaterial({map: _this.specialMarkerTexture, opacity: .7, depthTest: false, fog: true});
-        // var markerMaterial = new THREE.SpriteMaterial({map: _this.markerTopTexture});
-
-        var marker1 = new THREE.Sprite(markerMaterial);
-        var marker2 = new THREE.Sprite(markerMaterial);
-
-        marker1.scale.set(0, 0);
-        marker2.scale.set(0, 0);
-
-        marker1.position.set(point1.x*1.2, point1.y*1.2, point1.z*1.2);
-        marker2.position.set(point2.x*1.2, point2.y*1.2, point2.z*1.2);
-
-        this.scene.add(marker1);
-        this.scene.add(marker2);
-
-        var textSprite1 = createLabel.call(this, text1.toUpperCase(), point1.x*1.25, point1.y*1.25, point1.z*1.25, 25, "white", this.font, "#FFCC00");
-        var textSprite2 = createLabel.call(this, text2.toUpperCase(), point2.x*1.25, point2.y*1.25, point2.z*1.25, 25, "white", this.font, "#FFCC00");
-
-        this.scene.add(textSprite1);
-        this.scene.add(textSprite2);
-
-        new TWEEN.Tween({x: 0, y: 0})
-        .to({x: 50, y: 50}, 2000)
-        .easing( TWEEN.Easing.Elastic.InOut )
-        .onUpdate(function(){
-            marker1.scale.set(this.x, this.y);
-        })
-        .start();
-
-        new TWEEN.Tween({x: 0, y: 0})
-        .to({x: 45, y: 45}, 2000)
-        .easing( TWEEN.Easing.Elastic.InOut )
-        .onUpdate(function(){
-            marker2.scale.set(this.x, this.y);
-        })
-        .delay(2200)
-        .start();
-
-        var geometrySpline = new THREE.Geometry();
-        var materialSpline = new THREE.LineBasicMaterial({
-            color: 0xFFCC00,
-            transparent: true,
-            linewidth: 3,
-            opacity: .5
-        });
-
-        var geometrySpline2 = new THREE.Geometry();
-        var materialSpline2 = new THREE.LineBasicMaterial({
-            color: 0xFFCC00,
-            linewidth: 1,
-            transparent: true,
-            opacity: .5
-        });
-
-        var latdist = (lat2 - lat1)/99;
-        var londist = (lng2 - lng1)/99;
-        var startPoint = mapPoint(lat1, lng1);
-        var pointList = [];
-        var pointList2 = [];
-
-        for(var j = 0; j< 100; j++){
-            // var nextlat = ((90 + lat1 + j*1)%180)-90;
-            // var nextlon = ((180 + lng1 + j*1)%360)-180;
-
-
-            var nextlat = (((90 + lat1 + j*latdist)%180)-90) * (.5 + Math.cos(j*(5*Math.PI/2)/99)/2) + (j*lat2/99/2);
-            var nextlon = ((180 + lng1 + j*londist)%360)-180;
-            pointList.push({lat: nextlat, lon: nextlon, index: j});
-            if(j == 0 || j == 99){
-                pointList2.push({lat: nextlat, lon: nextlon, index: j});
-            } else {
-                pointList2.push({lat: nextlat+1, lon: nextlon, index: j});
-            }
-            // var thisPoint = mapPoint(nextlat, nextlon);
-            sPoint = new THREE.Vector3(startPoint.x*1.2, startPoint.y*1.2, startPoint.z*1.2);
-            sPoint2 = new THREE.Vector3(startPoint.x*1.2, startPoint.y*1.2, startPoint.z*1.2);
-            // sPoint = new THREE.Vector3(thisPoint.x*1.2, thisPoint.y*1.2, thisPoint.z*1.2);
-
-            sPoint.globe_index = j;
-            sPoint2.globe_index = j;
-
-            geometrySpline.vertices.push(sPoint);  
-            geometrySpline2.vertices.push(sPoint2);  
-        }
-
-        var currentLat = lat1;
-        var currentLon = lng1;
-        var currentPoint;
-        var currentVert;
-
-        var update = function(){
-            var nextSpot = pointList.shift();
-            var nextSpot2 = pointList2.shift();
-
-            for(var x = 0; x< geometrySpline.vertices.length; x++){
-
-                currentVert = geometrySpline.vertices[x];
-                currentPoint = mapPoint(nextSpot.lat, nextSpot.lon);
-
-                currentVert2 = geometrySpline2.vertices[x];
-                currentPoint2 = mapPoint(nextSpot2.lat, nextSpot2.lon);
-
-                if(x >= nextSpot.index){
-                    currentVert.set(currentPoint.x*1.2, currentPoint.y*1.2, currentPoint.z*1.2);
-                    currentVert2.set(currentPoint2.x*1.19, currentPoint2.y*1.19, currentPoint2.z*1.19);
-                }
-                geometrySpline.verticesNeedUpdate = true;
-                geometrySpline2.verticesNeedUpdate = true;
-            }
-            if(pointList.length > 0){
-                setTimeout(update,30);
-            }
-
-        };
-        setTimeout(function(){
-            update();
-        }, 2000);
-
-        this.scene.add(new THREE.Line(geometrySpline, materialSpline));
-        this.scene.add(new THREE.Line(geometrySpline2, materialSpline2, THREE.LinePieces));
+        return marker;
     }
 
     Globe.prototype.addSatellite = function(lat, lon, altitude, opts, texture, animator){
