@@ -12,6 +12,8 @@
 
         <link href="styles.css" rel="stylesheet" type="text/css" />
 
+        <script src="include/vec2.js"></script>
+        <script src="include/quadtree2.js"></script>
         <script src="include/three.min.js"></script>
         <script src="include/tween.min.js"></script>
         <script src="include/pusher.color.js"></script>
@@ -171,7 +173,7 @@
 
                     globe.addPin(lat,lon, name);
 
-                }, 10000);
+                }, 1000);
                 
                 /* add 6 satellites in random locations */
                 setTimeout(function(){

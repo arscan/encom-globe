@@ -29,8 +29,15 @@ module.exports = function(grunt) {
         },
         copy: {
             main : {
-                src: 'node_modules/quadtree2/quadtree2.js',
-                dest: 'include/quadtree2.js'
+                files: [
+                {
+                    src: 'node_modules/quadtree2/quadtree2.js',
+                    dest: 'include/quadtree2.js'
+                },
+                {
+                    src: 'node_modules/quadtree2/node_modules/vec2/vec2.js',
+                    dest: 'include/vec2.js'
+                }]
             }
         }
     });

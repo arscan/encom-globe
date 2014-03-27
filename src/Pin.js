@@ -105,21 +105,28 @@ var Pin = (function(THREE, TWEEN, document){
            this.smokeId = smokeProvider.setFire(lat, lon, altitude);
        }
 
+       var _this = this; //arghhh
+
        /* intro animations */
 
        if(opts.showTop || opts.showLabel){
            new TWEEN.Tween( {opacity: 0})
                .to( {opacity: 1}, 500 )
                .onUpdate(function(){
-                   if(opts.showTop){
+                   if(_this.topVisible){
                        topMaterial.opacity = this.opacity;
+                   } else {
+                       topMaterial.opacity = 0;
                    }
-                   labelMaterial.opacity = this.opacity;
+                   if(_this.labelVisible){
+                       labelMaterial.opacity = this.opacity;
+                   } else {
+                       labelMaterial.opacity = 0;
+                   }
                }).delay(1000)
                .start();
        }
 
-       var _this = this; //arghhh
 
        new TWEEN.Tween(point)
        .to( {x: point.x*altitude, y: point.y*altitude, z: point.z*altitude}, 1500 )
