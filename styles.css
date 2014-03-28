@@ -6,7 +6,20 @@ body {
     font-family: 'Inconsolata', sans-serif;
     color: #fff;
     font-size: 12px;
+    margin: 0;
+    overflow: hidden;
 }
+
+#globe {
+    margin: 0;
+    padding: 0;
+}
+
+#canvas {
+    margin: 0;
+    padding: 0;
+}
+
 
 .btn {
     font-size: 10pt;
@@ -31,25 +44,6 @@ body {
 
 #markers-input {
     display: none;
-}
-
-#container {
-    width: 1900px;
-    height: 700px;
-    margin: auto;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    position:absolute;
-    /*border: 1px solid #00EEEE;*/
-    /*border-bottom: 1px solid #333;*/
-
-}
-
-#globe {
-    width: 600px;
-    height: 500px;
 }
 
 #control-panel {

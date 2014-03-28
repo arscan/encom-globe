@@ -22,12 +22,19 @@
 
         <script>
 
-            var globe = new ENCOM.Globe(600, 600, {
+            var globe = new ENCOM.Globe(window.innerWidth, window.innerHeight, {
                 font: "Inconsolata",
                 data: data
                 });
 
             var markers = [];
+
+            function onWindowResize(){
+                globe.camera.aspect = window.innerWidth / window.innerHeight;
+                globe.camera.updateProjectionMatrix();
+                globe.renderer.setSize(window.innerWidth, window.innerHeight);
+
+            }
 
             function roundNumber(num){
                 return Math.round(num * 100)/100;
@@ -202,14 +209,16 @@
 
             $(function() {
 
+                window.addEventListener( 'resize', onWindowResize, false );
+
                 WebFontConfig = {
                     google: {
                           families: ['Inconsolata']
                     },
                     active: function(){
                         /* don't start the globe until the font has been loaded */
-                        globe.init(start);
                         $("#globe").append(globe.domElement);
+                        globe.init(start);
                     }
                 };
 
@@ -231,6 +240,7 @@
         <div id="container">
             <div id="globe">
             </div>
+            <!--
             <div id="control-panel">
                 <div id ="realtime">
                     <div class="header">ADD ELEMENTS</div>
@@ -297,6 +307,7 @@
                     </div>
                 </div>
             </div>
+            -->
         </div>
     <body>
 </html>

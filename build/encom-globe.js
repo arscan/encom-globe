@@ -1435,7 +1435,7 @@ var Globe = (function(THREE, TWEEN, document){
         var defaults = {
             font: "Inconsolata",
             baseColor: "#ffcc00",
-            blankPercentage: .08,
+            blankPercentage: 0,
             thinAntarctica: .01, // only show 1% of antartica... you can't really see it on the map anyhow
             mapUrl: "resources/equirectangle_projection.png",
             introLinesAltitude: 1.10,
@@ -1444,8 +1444,8 @@ var Globe = (function(THREE, TWEEN, document){
             introLinesCount: 60,
             cameraDistance: 1700,
             pointsPerDegree: 1.1,
-            pointSize: .45,
-            pointsVariance: .3,
+            pointSize: .6,
+            pointsVariance: .2,
             maxPins: 1000,
             data: []
         };
