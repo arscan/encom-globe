@@ -16,8 +16,8 @@ body {
 }
 #thumbprint {
     position: absolute;
-    bottom: 50px;
-    left: 50px;
+    bottom: 10px;
+    left: 10px;
     cursor: pointer;
 }
 
@@ -62,13 +62,21 @@ body {
 #options {
     position: absolute;
     top: 0;
-    left: 0;
+    left: -270px;
     bottom: 0;
     width: 350px;
     background-color: rgba(0,0,0,.9);
-    padding-left: 60px;
-    padding-top: 80px;
+    padding-left: 35px;
+    padding-top: 55px;
+    border-right: 2px solid #6fc0ba;
+    box-shadow: 0 0 2px #005b8e, inset 0 0 2px #005b8e;
 }
+
+#options-content {
+    opacity: 0;
+}
+
+
 .header{
 
     border-top: 1px solid #1d2c33;
@@ -76,7 +84,10 @@ body {
     /* box-shadow: 0 0 6px #005b8e, inset 0 0 6px #005b8e; */
     color: #fff;
     padding: 2px 0;
-    /*visibility: hidden;*/
+    visibility: hidden;
+    left: 25px;
+    width: 300px;
+    font-size: 6pt
 
 }
 
@@ -99,19 +110,24 @@ body {
 
 #header-bottom {
     position: absolute;
-    bottom: 150px;
-    left: 50px;
-    width: 300px;
-    font-size: 6pt
+    bottom: 100px;
 }
 
 
 #header-top {
     position: absolute;
-    top: 50px;
-    left: 50px;
+    top: 25px;
+}
+
+.header-animator{
+    position: absolute;
+    top: 300px;
+    left: 25px;
     width: 300px;
-    font-size: 6pt
+    height: 2px;
+    border-top: 1px solid #1d2c33;
+    border-bottom: 1px solid #1d2c33;
+    visibility: hidden;
 }
 
 /*

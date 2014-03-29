@@ -207,9 +207,62 @@
 
             }
 
+            function openOptions(){
+                var headerTopPosition = $("#header-top").position().top;
+                var headerBottomPosition = $("#header-bottom").position().top;
+                var headerHeight = $("#header-top").outerHeight(); /* margins or something, whatever */
+                $(".header-animator").offset({top: $(document).height()/2, left: 25});
+                $(".header-animator").height(0);
+
+                $("#options").data("left", $("#options").css("left"));
+                $("#thumbprint").data("left", $("#thumbprint").css("left"));
+                $("#options").animate({left: 0}, 500);
+                $("#thumbprint").animate({left: 265}, 500);
+
+                $("#options-content").delay(1500).animate({opacity: 1}, 500);
+
+                setTimeout(function(){
+                    $(".header-animator").css("visibility", "visible");
+
+                    $("#header-animator-outside").animate({
+                        top: headerTopPosition,
+                        height: headerBottomPosition - headerTopPosition + headerHeight
+                        }, 500);
+
+                    $("#header-animator-inside").animate({
+                        top: headerTopPosition + headerHeight,
+                        height: headerBottomPosition - headerTopPosition - headerHeight
+                        }, 500);
+                }, 500);
+
+                setTimeout(function(){
+                    $(".header-animator").css("visibility", "hidden");
+                    $(".header").css("visibility", "visible");
+                }, 1000);
+
+            }
+
+            function closeOptions(){
+                $("#options").animate({left: $("#options").data("left")}, 500);
+                $("#thumbprint").animate({left: $("#thumbprint").data("left")}, 500);
+                $("#options-content").animate({opacity: 0}, 500);
+                $(".header").css("visibility", "hidden");
+            }
+
             $(function() {
+                var open = false;
+
 
                 window.addEventListener( 'resize', onWindowResize, false );
+                $("#thumbprint").click(function(){
+                    if(!open){
+                        open = true;
+                        openOptions();
+                    } else {
+                        open = false;
+                        closeOptions();
+                    }
+                });
 
                 WebFontConfig = {
                     google: {
@@ -241,7 +294,9 @@
             <div id="globe">
             </div>
             <div id="options">
-                <img src="resources/point_picker.png" width= "280px"/>
+                <div id="options-content">
+                    <img src="resources/point_picker.png" width= "280px"/>
+                </div>
             </div>
             <div class="header" id="header-top">
                 <div class="header-left-section">CENTRAL SYSTEM DATA ... <span class="alt-1">LAUNCH ENCOM GLOBALIZATION</span></div>
@@ -252,9 +307,13 @@
                 <div class="header-left-section">TOUCHPOINT KEYBOARD ... <span class="alt-1">INTERACTION SEQUENCING</span></div>
                 <div class="header-right-section">SYS | O12</div>
             </div>
-            <div id="thumbprint">
+            <doiv id="thumbprint">
                 <img src="resources/thumbprint.png" />
             </div>
+            <!-- probably should remove these and have them created in the script-->
+            <div class="header-animator" id="header-animator-inside"></div>
+            <div class="header-animator" id="header-animator-outside"></div>
+
 
             <!--
             <div id="control-panel">
