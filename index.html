@@ -78,95 +78,26 @@
                     });
 
                 });
-                $("#pin-projection").click(function(e){
+                $(".projection").click(function(e){
                     var offset = $(this).offset();
-                    var latLon = projectionToLatLng($("#pin-projection").width(), $("#pin-projection").height(), e.clientX - offset.left, e.clientY - offset.top);
-                    $("#pin-lat").val(roundNumber(latLon.lat));
-                    $("#pin-lon").val(roundNumber(latLon.lon));
-                    $(this).data("locked", true);
-                });
-                $("#satellite-projection").click(function(e){
-                    var offset = $(this).offset();
-                    var latLon = projectionToLatLng($("#satellite-projection").width(), $("#satellite-projection").height(), e.clientX - offset.left, e.clientY - offset.top);
-                    $("#satellite-lat").val(roundNumber(latLon.lat));
-                    $("#satellite-lon").val(roundNumber(latLon.lon));
-                    $(this).data("locked", true);
-                });
+                    var latLon = projectionToLatLng($(".projection").width(), $(".projection").height(), e.clientX - offset.left, e.clientY - offset.top);
 
-                $("#markers-projection").click(function(e){
-                    var offset = $(this).offset();
-                    var latLon = projectionToLatLng($("#markers-projection").width(), $("#markers-projection").height(), e.clientX - offset.left, e.clientY - offset.top);
-                    $("#markers-lat").val(roundNumber(latLon.lat));
-                    $("#markers-lon").val(roundNumber(latLon.lon));
-                    $(this).data("locked", true);
-                });
+                    var selectedId = $("#add-element .selected").attr("id");
 
-                $("#pin-projection").mousemove(function(e){
-                    if(!$(this).data("locked")){
-                        var offset = $(this).offset();
-                        var latLon = projectionToLatLng($("#pin-projection").width(), $("#pin-projection").height(), e.clientX - offset.left, e.clientY - offset.top);
-                        $("#pin-lat").val(roundNumber(latLon.lat));
-                        $("#pin-lon").val(roundNumber(latLon.lon));
+                    if(selectedId == "add-pin"){
+                        globe.addPin(latLon.lat, latLon.lon, "User Dropped Pin");
+                    } else if(selectedId == "add-marker"){
+                        addMarker(latLon.lat, latLon.lon, "User Marker");
+                    } else if(selectedId == "add-satellite"){
+                    console.log("adding sat");
+                        globe.addSatellite(latLon.lat, latLon.lon, 1.2);
                     }
                 });
 
-                $("#satellite-projection").mousemove(function(e){
-                    if(!$(this).data("locked")){
-                        var offset = $(this).offset();
-                        var latLon = projectionToLatLng($("#satellite-projection").width(), $("#satellite-projection").height(), e.clientX - offset.left, e.clientY - offset.top);
-                        $("#satellite-lat").val(roundNumber(latLon.lat));
-                        $("#satellite-lon").val(roundNumber(latLon.lon));
-                    }
-                });
+                $("#add-element li").click(function(e){
+                    $("#add-element li").removeClass("selected");
+                    $(e.currentTarget).addClass("selected");
 
-                $("#markers-projection").mousemove(function(e){
-                    if(!$(this).data("locked")){
-                        var offset = $(this).offset();
-                        var latLon = projectionToLatLng($("#markers-projection").width(), $("#markers-projection").height(), e.clientX - offset.left, e.clientY - offset.top);
-                        $("#markers-lat").val(roundNumber(latLon.lat));
-                        $("#markers-lon").val(roundNumber(latLon.lon));
-                    }
-                });
-                $("#pin-projection").mouseout(function(e){
-                    if(!$(this).data("locked")){
-                        $("#pin-lat").val("");
-                        $("#pin-lon").val("");
-                    }
-                    $(this).data("locked", false);
-                });
-
-                $("#satellite-projection").mouseout(function(e){
-                    if(!$(this).data("locked")){
-                        $("#satellite-lat").val("");
-                        $("#satellite-lon").val("");
-                    }
-                    $(this).data("locked", false);
-                });
-                $("#satellite-projection").mouseout(function(e){
-                    if(!$(this).data("locked")){
-                        $("#markers-lat").val("");
-                        $("#markers-lon").val("");
-                    }
-                    $(this).data("locked", false);
-                });
-
-                $("#pin-go").click(function(){
-                    globe.addPin($("#pin-lat").val(), $("#pin-lon").val(), $("#pin-name").val());
-                });
-
-                $("#satellite-go").click(function(){
-                    var opts = {
-                        numWaves: 13,
-                        waveColor: "#FFCC00",
-                        coreColor: "#00EEEE",
-                        shieldColor: "#FFCC00",
-                        size: 0.8
-                    };
-                    globe.addSatellite($("#satellite-lat").val(), $("#satellite-lon").val(), 1.3, opts);
-                });
-
-                $("#markers-go").click(function(){
-                    addMarker($("#markers-lat").val(), $("#markers-lon").val(), $("#markers-name").val());
                 });
 
                 animate();
@@ -252,17 +183,35 @@
             $(function() {
                 var open = false;
 
-
                 window.addEventListener( 'resize', onWindowResize, false );
-                $("#thumbprint").click(function(){
-                    if(!open){
-                        open = true;
-                        openOptions();
-                    } else {
-                        open = false;
-                        closeOptions();
-                    }
-                });
+
+                var docHeight = $(document).height();
+
+                $("#options").css({
+                    "visibility": "visible",
+                    "top": docHeight/2,
+                    "bottom": docHeight/2
+                    }).animate({
+                        "top": 0,
+                        "bottom": 0,
+                        "height": docHeight,
+                        "padding-left": 35,
+                        "padding-top": 55
+                    },function complete(){
+                        $("#thumbprint").animate({opacity: 1});
+                        $("#thumbprint").click(function(){
+                            if(!open){
+                                open = true;
+                                openOptions();
+                            } else {
+                                open = false;
+                                closeOptions();
+                            }
+                        });
+                    
+                    });
+
+                
 
                 WebFontConfig = {
                     google: {
@@ -295,7 +244,13 @@
             </div>
             <div id="options">
                 <div id="options-content">
-                    <img src="resources/point_picker.png" width= "280px"/>
+                    Add element by clicking map below
+                    <img class="projection" src="resources/point_picker.png" width= "280px"/>
+                    <ul id = "add-element">
+                        <li id="add-pin" class="selected">Drop Pin</li>
+                        <li id="add-marker">Marker</li>
+                        <li id="add-satellite">Satellite</li>
+                    </ul>
                 </div>
             </div>
             <div class="header" id="header-top">
@@ -307,82 +262,13 @@
                 <div class="header-left-section">TOUCHPOINT KEYBOARD ... <span class="alt-1">INTERACTION SEQUENCING</span></div>
                 <div class="header-right-section">SYS | O12</div>
             </div>
-            <doiv id="thumbprint">
+            <div id="thumbprint">
                 <img src="resources/thumbprint.png" />
             </div>
             <!-- probably should remove these and have them created in the script-->
             <div class="header-animator" id="header-animator-inside"></div>
             <div class="header-animator" id="header-animator-outside"></div>
 
-
-            <!--
-            <div id="control-panel">
-                <div id ="realtime">
-                    <div class="header">ADD ELEMENTS</div>
-                    <div id="realtime-info">
-                        <div class="btn-group btn-group-justified" data-toggle="buttons">
-                            <label class="btn btn-primary active toggle-button" id="pin-button">
-                                <input type="radio" name="options" id="option1"> Pin
-                            </label>
-                            <label class="btn btn-primary toggle-button" id = "markers-button">
-                                <input type="radio" name="options" id="option2"> Markers
-                            </label>
-                            <label class="btn btn-primary toggle-button" id="satellite-button">
-                                <input type="radio" name="options" id="option3"> Satellites
-                            </label>
-                        </div>
-                        <div id="pin-input">
-                            <img class="projection" id = "pin-projection" src="resources/point_picker.png" />
-                            <div class="input-group" id="pin-lat-lon">
-                                <input type="text" class="form-control" id="pin-lat" placeholder="Lat">
-                                <input type="text" class="form-control"  id="pin-lon" placeholder = "Lon">
-                            </div>
-                            <div class="input-group">
-                                <input type="text" class="form-control" id="pin-name" placeholder="Location Name (optional)" />
-                                <div class="input-group-btn">
-                                    <button type="button" class="btn btn-default" id="pin-go">Add Pin</button>
-                                </div>
-                            </div>
-                        </div>
-                        <div id="satellite-input">
-                            <img class="projection" id = "satellite-projection" src="resources/point_picker.png" />
-                            <div class="input-group" id="satellite-lat-lon">
-                                <input type="text" class="form-control" id="satellite-lat" placeholder="Lat">
-                                <input type="text" class="form-control"  id="satellite-lon" placeholder = "Lon">
-                                <div class="input-group-btn">
-                                    <button type="button" class="btn btn-default" id="satellite-go">Add Satellite</button>
-                                </div>
-                            </div>
-                        </div>
-                        <div id="markers-input">
-                            <img class="projection" id = "markers-projection" src="resources/point_picker.png" />
-                            <div class="input-group" id="markers-lat-lon">
-                                <input type="text" class="form-control" id="markers-lat" placeholder="Lat">
-                                <input type="text" class="form-control"  id="markers-lon" placeholder = "Lng">
-                                <input type="text" class="form-control" id="markers-name" placeholder="Location Name (optional)" />
-                                <button type="button" class="btn btn-default" id="markers-go">Add Marker</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div id ="params">
-                    <div class="header">CHANGE PARAMETERS</div>
-                    <div id="params-info">
-                        Allow users to change fundamental parameters.
-                        <ul>
-                            <li>colors</li>
-                            <li>satellites</li>
-                            <li>rotation speed</li>
-                            <li>intro animations</li>
-                            <li>height of markers, etc</li>
-                            <li>number of points</li>
-                            <li>font</li>
-                            <li>globe size</li>
-
-                    </div>
-                </div>
-            </div>
-            -->
         </div>
     <body>
 </html>
