@@ -10,6 +10,14 @@ body {
     overflow: hidden;
 }
 
+a {
+    color: #00eeee;
+}
+
+a.arscan {
+    color: #ffcc00;
+}
+
 h3 {
     font-size: 1.2em;
     margin: 0;
@@ -21,6 +29,20 @@ h3 {
     margin: 0;
     padding: 0;
 }
+
+#info-box {
+    position:absolute;
+    top: 5px;
+    text-align: center;
+    width: 100%;
+    visibility: hidden
+
+}
+
+.wf-active #info-box{
+    visibility: visible;
+}
+
 #thumbprint {
     position: absolute;
     bottom: 10px;

@@ -10,10 +10,6 @@
 
         <script src="include/simple-slider.js"></script>
 
-        <!-- <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css"> -->
-        <!-- <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap&#45;theme.min.css"> -->
-        <!-- <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script> -->
-
         <link href="styles.css" rel="stylesheet" type="text/css" />
 
         <script src="include/vec2.js"></script>
@@ -244,33 +240,6 @@
 
                 var docHeight = $(document).height();
 
-                $("#options").css({
-                    "visibility": "visible",
-                    "top": docHeight/2,
-                    "bottom": docHeight/2
-                    }).animate({
-                        "top": 0,
-                        "bottom": 0,
-                        "padding-top": 46
-                    },function complete(){
-                        $("#thumbprint").animate({opacity: 1});
-                        $("#thumbprint").click(function(){
-                            if(!open){
-                                open = true;
-                                openOptions();
-                            } else {
-                                open = false;
-                                closeOptions();
-                            }
-                        });
-
-                        /*
-                        open = true;
-                        openOptions();
-                        */
-
-                    
-                    });
 
                 
 
@@ -280,7 +249,35 @@
                     },
                     active: function(){
                         /* don't start the globe until the font has been loaded */
-                        createGlobe();
+                        $("#options").css({
+                            "visibility": "visible",
+                            "top": docHeight/2,
+                            "bottom": docHeight/2
+                            }).animate({
+                            "top": 0,
+                            "bottom": 0,
+                            "padding-top": 46
+                            },800,function complete(){
+
+                                $("#thumbprint").animate({opacity: 1});
+                                $("#thumbprint").click(function(){
+                                    if(!open){
+                                        open = true;
+                                        openOptions();
+                                        } else {
+                                        open = false;
+                                        closeOptions();
+                                    }
+                                });
+
+                                setTimeout(function(){
+                                    open = true;
+                                    openOptions();
+                                }, 3000);
+
+                                createGlobe();
+
+                            });
                     }
                 };
 
@@ -301,6 +298,9 @@
     <body>
         <div id="container">
             <div id="globe">
+            </div>
+            <div id="info-box">
+                Made for no good reason by <a class="arscan" href="http://twitter.com/arscan">@arscan</a>.  Based on the <a href="http://work.gmunk.com/TRON-Board-Room">boardroom scene</a> in Disney's <a href="http://www.imdb.com/title/tt1104001/">Tron: Legacy</a>.  Source on <a href="http://github.com/arscan/encom-globe/">Github</a>.
             </div>
             <div id="options">
                 <div id="options-content">
