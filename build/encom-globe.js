@@ -862,13 +862,13 @@ var Marker = (function(THREE, TWEEN, document){
             texture;
 
         canvas =  renderToCanvas(markerWidth, markerHeight, function(ctx){
+            ctx.fillStyle=markerColor;
             ctx.strokeStyle=markerColor;
             ctx.lineWidth=3;
             ctx.beginPath();
             ctx.arc(markerWidth/2, markerHeight/2, markerWidth/3, 0, 2* Math.PI);
             ctx.stroke();
 
-            ctx.fillStyle=markerColor;
             ctx.beginPath();
             ctx.arc(markerWidth/2, markerHeight/2, markerWidth/5, 0, 2* Math.PI);
             ctx.fill();
@@ -893,7 +893,7 @@ var Marker = (function(THREE, TWEEN, document){
             font: "Inconsolata",
             fontSize: 20,
             drawTime: 2000,
-            lineSegments: 200
+            lineSegments: 150
         }
 
         var point,
@@ -1427,14 +1427,19 @@ var Globe = (function(THREE, TWEEN, document){
         this.points = [];
         this.introLines = new THREE.Object3D();
         this.pins = [];
+        this.markers = [];
         this.satelliteAnimations = [];
         this.satelliteMeshes = [];
         this.satellites = {};
         this.quadtree = new Quadtree2(new Vec2(180, 360), 5);
+        this.active = true;
 
         var defaults = {
             font: "Inconsolata",
             baseColor: "#ffcc00",
+            markerColor: "#ffcc00",
+            pinColor: "#00eeee",
+            satelliteColor: "#ff0000",
             blankPercentage: 0,
             thinAntarctica: .01, // only show 1% of antartica... you can't really see it on the map anyhow
             mapUrl: "resources/equirectangle_projection.png",
@@ -1442,11 +1447,13 @@ var Globe = (function(THREE, TWEEN, document){
             introLinesDuration: 2000,
             introLinesColor: "#8FD8D8",
             introLinesCount: 60,
-            cameraDistance: 1700,
+            scale: 1.0,
+            dayLength: 28000,
             pointsPerDegree: 1.1,
             pointSize: .6,
             pointsVariance: .2,
-            maxPins: 1000,
+            maxPins: 500,
+            maxMarkers: 4,
             data: []
         };
 
@@ -1458,6 +1465,7 @@ var Globe = (function(THREE, TWEEN, document){
                 }
             }
         }
+        this.cameraDistance = 1700 / this.scale;
 
         this.renderer = new THREE.WebGLRenderer( { antialias: true } );
         this.renderer.setSize( this.width, this.height);
@@ -1565,10 +1573,32 @@ var Globe = (function(THREE, TWEEN, document){
         img.src = this.mapUrl;
     };
 
+    Globe.prototype.destroy = function(callback){
+
+        var _this = this;
+        this.active = false;
+
+        setTimeout(function(){
+            while(_this.scene.children.length > 0){
+                _this.scene.remove(_this.scene.children[0]);
+            }
+            if(typeof callback == "function"){
+                callback();
+            }
+
+        }, 1000);
+        
+    };
+
     Globe.prototype.addPin = function(lat, lon, text){
 
         lat = parseFloat(lat);
         lon = parseFloat(lon);
+
+        var opts = {
+            lineColor: this.pinColor,
+            topColor: this.pinColor
+        }
 
         var altitude = 1.2;
 
@@ -1578,7 +1608,7 @@ var Globe = (function(THREE, TWEEN, document){
            altitude -= Math.random() * .1;
         }
 
-        var pin = new Pin(lat, lon, text, altitude, this.scene, this.smokeProvider);
+        var pin = new Pin(lat, lon, text, altitude, this.scene, this.smokeProvider, opts);
 
         this.pins.push(pin);
 
@@ -1637,9 +1667,27 @@ var Globe = (function(THREE, TWEEN, document){
 
     }
 
-    Globe.prototype.addMarker = function(lat, lon, text, previous){
+    Globe.prototype.addMarker = function(lat, lon, text, connected){
 
-        var marker = new Marker(lat, lon, text, 1.2, previous, this.scene);
+        var marker;
+        var opts = {
+            markerColor: this.markerColor,
+            lineColor: this.markerColor
+        };
+
+        if(typeof connected == "boolean" && connected){
+            marker = new Marker(lat, lon, text, 1.2, this.markers[this.markers.length-1], this.scene, opts);
+        } else if(typeof connected == "object"){
+            marker = new Marker(lat, lon, text, 1.2, connected, this.scene, opts);
+        } else {
+            marker = new Marker(lat, lon, text, 1.2, null, this.scene, opts);
+        }
+
+        this.markers.push(marker);
+
+        if(this.markers.length > this.maxMarkers){
+            this.markers.shift().remove();
+        }
 
         return marker;
     }
@@ -1647,6 +1695,14 @@ var Globe = (function(THREE, TWEEN, document){
     Globe.prototype.addSatellite = function(lat, lon, altitude, opts, texture, animator){
         /* texture and animator are optimizations so we don't have to regenerate certain 
          * redundant assets */
+
+        if(!opts){
+            opts = {};
+        }
+
+        if(opts.coreColor == undefined){
+            opts.coreColor = this.satelliteColor;
+        }
 
         var satellite = new Satellite(lat, lon, altitude, this.scene, opts, texture, animator);
 
@@ -1662,9 +1718,9 @@ var Globe = (function(THREE, TWEEN, document){
 
     };
     
-    Globe.prototype.addConstellation = function(sats){
+    Globe.prototype.addConstellation = function(sats, opts){
 
-        /* TODO: make it so that when you remove the first in a constillation it removes all others */
+        /* TODO: make it so that when you remove the first in a constellation it removes all others */
 
         var texture,
             animator,
@@ -1673,9 +1729,9 @@ var Globe = (function(THREE, TWEEN, document){
 
         for(var i = 0; i< sats.length; i++){
             if(i === 0){
-               satellite = this.addSatellite(sats[i].lat, sats[i].lon, sats[i].altitude);
+               satellite = this.addSatellite(sats[i].lat, sats[i].lon, sats[i].altitude, opts);
             } else {
-               satellite = this.addSatellite(sats[i].lat, sats[i].lon, sats[i].altitude, null, constellation[0].canvas, constellation[0].texture);
+               satellite = this.addSatellite(sats[i].lat, sats[i].lon, sats[i].altitude, opts, constellation[0].canvas, constellation[0].texture);
             }
             constellation.push(satellite);
 
@@ -1686,6 +1742,11 @@ var Globe = (function(THREE, TWEEN, document){
     };
 
     Globe.prototype.tick = function(){
+
+        if(!this.camera){
+            return;
+        }
+
         if(!this.firstRunTime){
             this.firstRunTime = Date.now();
         }
@@ -1704,9 +1765,14 @@ var Globe = (function(THREE, TWEEN, document){
 
         var renderTime = new Date() - this.lastRenderDate;
         this.lastRenderDate = new Date();
-        var rotateCameraBy = (2 * Math.PI)/(20000/renderTime);
+        var rotateCameraBy = (2 * Math.PI)/(this.dayLength/renderTime);
 
         this.cameraAngle += rotateCameraBy;
+
+        if(!this.active){
+            this.cameraDistance += (1000 * renderTime/1000);
+        }
+
 
         this.camera.position.x = this.cameraDistance * Math.cos(this.cameraAngle);
         this.camera.position.y = 400;

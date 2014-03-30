@@ -7,13 +7,13 @@ var Marker = (function(THREE, TWEEN, document){
             texture;
 
         canvas =  renderToCanvas(markerWidth, markerHeight, function(ctx){
+            ctx.fillStyle=markerColor;
             ctx.strokeStyle=markerColor;
             ctx.lineWidth=3;
             ctx.beginPath();
             ctx.arc(markerWidth/2, markerHeight/2, markerWidth/3, 0, 2* Math.PI);
             ctx.stroke();
 
-            ctx.fillStyle=markerColor;
             ctx.beginPath();
             ctx.arc(markerWidth/2, markerHeight/2, markerWidth/5, 0, 2* Math.PI);
             ctx.fill();
@@ -38,7 +38,7 @@ var Marker = (function(THREE, TWEEN, document){
             font: "Inconsolata",
             fontSize: 20,
             drawTime: 2000,
-            lineSegments: 200
+            lineSegments: 150
         }
 
         var point,

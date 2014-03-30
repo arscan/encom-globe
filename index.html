@@ -5,10 +5,14 @@
         <title>Encom Globe</title>
 
         <script src="http://code.jquery.com/jquery-2.0.3.min.js"></script>
+        <script src="include/spectrum.js"></script>
+        <link href="include/spectrum.css" rel="stylesheet" type="text/css" />
 
-        <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
-        <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css">
-        <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+        <script src="include/simple-slider.js"></script>
+
+        <!-- <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css"> -->
+        <!-- <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap&#45;theme.min.css"> -->
+        <!-- <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script> -->
 
         <link href="styles.css" rel="stylesheet" type="text/css" />
 
@@ -22,12 +26,33 @@
 
         <script>
 
-            var globe = new ENCOM.Globe(window.innerWidth, window.innerHeight, {
-                font: "Inconsolata",
-                data: data
+
+            var globe;
+            var globeCount = 0;
+
+            function createGlobe(){
+                globeCount++;
+                $("#globe canvas").remove();
+
+                globe = new ENCOM.Globe(window.innerWidth, window.innerHeight, {
+                    font: "Inconsolata",
+                    data: data.slice(), // copy the data array
+                    baseColor: $("#globe-color").val(),
+                    markerColor: $("#marker-color").val(),
+                    pinColor: $("#pin-color").val(),
+                    satelliteColor: $("#satellite-color").val(),
+                    scale: parseFloat($("#globe-scale").val()),
+                    dayLength: 1000 * parseFloat($("#globe-spr").val()),
+                    pointsPerDegree: parseFloat($("#globe-ppd").val()),
+                    pointSize: parseFloat($("#globe-ps").val()),
+                    introLinesDuration: parseFloat($("#globe-id").val()),
+                    maxPins: parseFloat($("#globe-mp").val()),
+                    maxMarkers: parseFloat($("#globe-mm").val()),
                 });
 
-            var markers = [];
+                $("#globe").append(globe.domElement);
+                globe.init(start);
+            }
 
             function onWindowResize(){
                 globe.camera.aspect = window.innerWidth / window.innerHeight;
@@ -49,91 +74,88 @@
 
             }
 
-            function addMarker(lat, lon, text){
-                if(markers.length > 0){
-                    var prev = markers[markers.length-1];
-                    markers.push(globe.addMarker(lat, lon, text, prev));
-                } else {
-                    markers.push(globe.addMarker(lat, lon, text));
-                }
-                if(markers.length > 4){
-                    markers.shift().remove();
-                }
-            };
-
             function animate(){
-                globe.tick();
+                if(globe){
+                    globe.tick();
+                }
                 requestAnimationFrame(animate);
             }
 
             function start(){
                 
-                $(".toggle-button").click(function(e){
-                    var _this = this;
-                    $("#" + $(this).attr("id").split("-")[0] + "-input").slideDown(500);
-                    $(".toggle-button").each(function(index, element){
-                        if(_this != element){
-                            $("#" + $(this).attr("id").split("-")[0] + "-input").slideUp(500);
+                if(globeCount == 1){ // only do this for the first globe that's created. very messy
+                    $("#apply-button").click(function(e){
+                        globe.destroy(function(){
+                            createGlobe();
+                            });
+                    });
+                    $(".projection").click(function(e){
+                        var offset = $(this).offset();
+                        var latLon = projectionToLatLng($(".projection").width(), $(".projection").height(), e.clientX - offset.left, e.clientY - offset.top);
+
+                        var selectedId = $("#add-element .selected").attr("id");
+
+                        if(selectedId == "add-pin"){
+                            globe.addPin(latLon.lat, latLon.lon, "User Dropped Pin");
+                        } else if(selectedId == "add-marker"){
+                            globe.addMarker(latLon.lat, latLon.lon, "User Marker", true);
+                        } else if(selectedId == "add-satellite"){
+                            var opts = {
+                                coreColor: $("#satellite-color").val(),
+                                numWaves: parseInt($("#globe-si").val())
+                            };
+                            globe.addSatellite(latLon.lat, latLon.lon, parseFloat($("#globe-sa").val()), opts);
                         }
                     });
 
-                });
-                $(".projection").click(function(e){
-                    var offset = $(this).offset();
-                    var latLon = projectionToLatLng($(".projection").width(), $(".projection").height(), e.clientX - offset.left, e.clientY - offset.top);
+                    $("#add-element li").click(function(e){
+                        $("#add-element li").removeClass("selected");
+                        $(e.currentTarget).addClass("selected");
+                    });
 
-                    var selectedId = $("#add-element .selected").attr("id");
+                    animate();
 
-                    if(selectedId == "add-pin"){
-                        globe.addPin(latLon.lat, latLon.lon, "User Dropped Pin");
-                    } else if(selectedId == "add-marker"){
-                        addMarker(latLon.lat, latLon.lon, "User Marker");
-                    } else if(selectedId == "add-satellite"){
-                    console.log("adding sat");
-                        globe.addSatellite(latLon.lat, latLon.lon, 1.2);
-                    }
-                });
+                    /* add pins at random locations */
+                    setInterval(function(){
+                        if(!globe){
+                            return;
+                        }
+                        
+                        var lat = Math.random() * 180 - 90,
+                           lon = Math.random() * 360 - 180,
+                           name = "Test " + Math.floor(Math.random() * 100);
 
-                $("#add-element li").click(function(e){
-                    $("#add-element li").removeClass("selected");
-                    $(e.currentTarget).addClass("selected");
+                        globe.addPin(lat,lon, name);
 
-                });
-
-                animate();
-
-                /* add pins at random locations */
-                setInterval(function(){
-                    
-                    var lat = Math.random() * 180 - 90,
-                       lon = Math.random() * 360 - 180,
-                       name = "Test " + Math.floor(Math.random() * 100);
-
-                    globe.addPin(lat,lon, name);
-
-                }, 1000);
+                    }, 1000);
+                }
                 
                 /* add 6 satellites in random locations */
                 setTimeout(function(){
                     var constellation = [];
+                    var opts = {
+                        coreColor: $("#satellite-color").val(),
+                        numWaves: parseInt($("#globe-si").val())
+                    };
+                    var alt =  parseFloat($("#globe-sa").val());
 
                     for(var i = 0; i< 2; i++){
                         for(var j = 0; j< 3; j++){
                              constellation.push({
                                 lat: 50 * i - 30 + 15 * Math.random(), 
                                  lon: 120 * j - 120 + 30 * i, 
-                                 altitude: 1.3 + Math.random()/10
+                                 altitude: alt
                                  });
                         }
                     }
 
-                    globe.addConstellation(constellation);
+                    globe.addConstellation(constellation, opts);
                 }, 4000);
 
                 /* add the connected points that are in the movie */
                 setTimeout(function(){
-                    addMarker(49.25, -123.1, "Vancouver");
-                    addMarker(35.6895, 129.69171, "Tokyo");
+                    globe.addMarker(49.25, -123.1, "Vancouver");
+                    globe.addMarker(35.6895, 129.69171, "Tokyo", true);
                 }, 2000);
 
             }
@@ -185,6 +207,41 @@
 
                 window.addEventListener( 'resize', onWindowResize, false );
 
+                $("#globe-color").spectrum({
+                    color: "#ffcc00",
+                    showInput: false
+                }); 
+
+                $("#pin-color").spectrum({
+                    color: "#8FD8D8",
+                    showInput: false
+                }); 
+
+                $("#marker-color").spectrum({
+                    color: "#ffcc00",
+                    showInput: false
+                }); 
+
+                $("#satellite-color").spectrum({
+                    color: "#ff0000",
+                    showInput: false
+                }); 
+
+                $("[data-slider]")
+                .each(function () {
+                    var input = $(this);
+                    $("<span>")
+                        .addClass("slider-output")
+                        .insertAfter($(this))
+                        .html(input.val());
+
+                    })
+                    .bind("slider:ready slider:changed", function (event, data) {
+                        $(this)
+                        .nextAll(".slider-output:first")
+                        .html(data.value.toFixed(3));
+                        });
+
                 var docHeight = $(document).height();
 
                 $("#options").css({
@@ -194,9 +251,7 @@
                     }).animate({
                         "top": 0,
                         "bottom": 0,
-                        "height": docHeight,
-                        "padding-left": 35,
-                        "padding-top": 55
+                        "padding-top": 46
                     },function complete(){
                         $("#thumbprint").animate({opacity: 1});
                         $("#thumbprint").click(function(){
@@ -208,6 +263,12 @@
                                 closeOptions();
                             }
                         });
+
+                        /*
+                        open = true;
+                        openOptions();
+                        */
+
                     
                     });
 
@@ -219,8 +280,7 @@
                     },
                     active: function(){
                         /* don't start the globe until the font has been loaded */
-                        $("#globe").append(globe.domElement);
-                        globe.init(start);
+                        createGlobe();
                     }
                 };
 
@@ -244,13 +304,75 @@
             </div>
             <div id="options">
                 <div id="options-content">
-                    Add element by clicking map below
+                    <h3>Add element by clicking map below</h3>
                     <img class="projection" src="resources/point_picker.png" width= "280px"/>
                     <ul id = "add-element">
-                        <li id="add-pin" class="selected">Drop Pin</li>
-                        <li id="add-marker">Marker</li>
-                        <li id="add-satellite">Satellite</li>
+                        <li id="add-pin" class="button selected">Drop Pin</li>
+                        <li id="add-marker" class="button">Marker</li>
+                        <li id="add-satellite" class="button">Satellite</li>
                     </ul>
+                    <h3>Configure Globe</h3>
+
+                    <div>
+                        <label>
+                            Color Palette
+                        </label>
+                        <ul id="color-options">
+                            <li title="Globe Color"><input type="text" id="globe-color" value="#ffcc00"></li>
+                            <li title="Pin Color"><input type="text" id="pin-color" value="#8FD8D8"></li>
+                            <li title="Marker Color"><input type="text" id="marker-color" value="#ffcc00"></li>
+                            <li title="Satellite Core Color"><input type="text" id="satellite-color" value="#ff0000"></li>
+                        </ul>
+
+                        <label>
+                            Globe Scale
+                        </label>
+                        <input type="text" id="globe-scale" data-slider="true" data-slider-range=".1, 3.0" data-slider-step=".1" data-slider-highlight="true" value="1.0"/>
+
+                        <label>
+                            Seconds per Rotation
+                        </label>
+                        <input type="text" id="globe-spr" data-slider="true" data-slider-range="1, 120" data-slider-step="1" data-slider-highlight="true" value="28"/>
+
+                        <label>
+                            Points per Degree
+                        </label>
+                        <input type="text" id="globe-ppd" data-slider="true" data-slider-range=".5,4" data-slider-step=".1" data-slider-highlight="true" value="1.1"/>
+
+                        <label>
+                            Point Size
+                        </label>
+                        <input type="text" id="globe-ps" data-slider="true" data-slider-range=".1,1.0" data-slider-step=".1" data-slider-highlight="true" value=".6"/>
+
+                        <label>
+                            Intro Duration (ms)
+                        </label>
+                        <input type="text" id="globe-id" data-slider="true" data-slider-range="500,5000" data-slider-step="100" data-slider-highlight="true" value="2000"/>
+
+                        <label>
+                            Max Pins
+                        </label>
+                        <input type="text" id="globe-mp" data-slider="true" data-slider-range="10,1000" data-slider-step="10" data-slider-highlight="true" value="500"/>
+
+                        <label>
+                            Max Markers
+                        </label>
+                        <input type="text" id="globe-mm" data-slider="true" data-slider-range="1,10" data-slider-step="1" data-slider-highlight="true" value="4"/>
+
+                        <label>
+                            Satellite Altitude
+                        </label>
+                        <input type="text" id="globe-sa" data-slider="true" data-slider-range="1.0,3.0" data-slider-step=".01" data-slider-highlight="true" value="1.2"/>
+
+                        <label>
+                            Satellite Intensity
+                        </label>
+                        <input type="text" id="globe-si" data-slider="true" data-slider-range="3,12" data-slider-step="1" data-slider-highlight="true" value="8"/>
+                    </div>
+
+                    <div id="apply-button" class="button">Apply</div>
+
+                    
                 </div>
             </div>
             <div class="header" id="header-top">
