@@ -4,14 +4,20 @@
         <meta charset="utf-8">
         <title>Encom Globe</title>
 
+        <!-- these are just for the demo page / options -->
         <script src="http://code.jquery.com/jquery-2.0.3.min.js"></script>
+        <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.2/jquery-ui.min.js"></script>
+
         <script src="include/spectrum.js"></script>
         <link href="include/spectrum.css" rel="stylesheet" type="text/css" />
-
+        <script src="include/jquery.switchButton.js"></script>
+        <link href="include/jquery.switchButton.css" rel="stylesheet" type="text/css" />
         <script src="include/simple-slider.js"></script>
+        <script src="include/Detector.js"></script>
 
         <link href="styles.css" rel="stylesheet" type="text/css" />
 
+        <!-- required for the application -->
         <script src="include/vec2.js"></script>
         <script src="include/quadtree2.js"></script>
         <script src="include/three.min.js"></script>
@@ -27,12 +33,16 @@
             var globeCount = 0;
 
             function createGlobe(){
+                var newData = [];
                 globeCount++;
                 $("#globe canvas").remove();
+                if($("#globe-dd:checked").length){
+                    newData = data.slice();
+                }
 
                 globe = new ENCOM.Globe(window.innerWidth, window.innerHeight, {
                     font: "Inconsolata",
-                    data: data.slice(), // copy the data array
+                    data: newData, // copy the data array
                     baseColor: $("#globe-color").val(),
                     markerColor: $("#marker-color").val(),
                     pinColor: $("#pin-color").val(),
@@ -113,7 +123,7 @@
 
                     /* add pins at random locations */
                     setInterval(function(){
-                        if(!globe){
+                        if(!globe || !$("#globe-dd:checked").length){
                             return;
                         }
                         
@@ -127,32 +137,35 @@
                 }
                 
                 /* add 6 satellites in random locations */
-                setTimeout(function(){
-                    var constellation = [];
-                    var opts = {
-                        coreColor: $("#satellite-color").val(),
-                        numWaves: parseInt($("#globe-si").val())
-                    };
-                    var alt =  parseFloat($("#globe-sa").val());
 
-                    for(var i = 0; i< 2; i++){
-                        for(var j = 0; j< 3; j++){
-                             constellation.push({
-                                lat: 50 * i - 30 + 15 * Math.random(), 
-                                 lon: 120 * j - 120 + 30 * i, 
-                                 altitude: alt
-                                 });
+                if($("#globe-dd:checked").length){
+                    setTimeout(function(){
+                        var constellation = [];
+                        var opts = {
+                            coreColor: $("#satellite-color").val(),
+                            numWaves: parseInt($("#globe-si").val())
+                        };
+                        var alt =  parseFloat($("#globe-sa").val());
+
+                        for(var i = 0; i< 2; i++){
+                            for(var j = 0; j< 3; j++){
+                                 constellation.push({
+                                    lat: 50 * i - 30 + 15 * Math.random(), 
+                                     lon: 120 * j - 120 + 30 * i, 
+                                     altitude: alt
+                                     });
+                            }
                         }
-                    }
 
-                    globe.addConstellation(constellation, opts);
-                }, 4000);
+                        globe.addConstellation(constellation, opts);
+                    }, 4000);
 
-                /* add the connected points that are in the movie */
-                setTimeout(function(){
-                    globe.addMarker(49.25, -123.1, "Vancouver");
-                    globe.addMarker(35.6895, 129.69171, "Tokyo", true);
-                }, 2000);
+                    /* add the connected points that are in the movie */
+                    setTimeout(function(){
+                        globe.addMarker(49.25, -123.1, "Vancouver");
+                        globe.addMarker(35.6895, 129.69171, "Tokyo", true);
+                    }, 2000);
+                }
 
             }
 
@@ -238,10 +251,9 @@
                         .html(data.value.toFixed(3));
                         });
 
+                $(":checkbox").switchButton();
+
                 var docHeight = $(document).height();
-
-
-                
 
                 WebFontConfig = {
                     google: {
@@ -280,6 +292,10 @@
                             });
                     }
                 };
+
+                /* Webgl stuff */
+
+                Detector.addGetWebGLMessage({parent: document.getElementById("globe")});
 
                 /* web font stuff*/
                 var wf = document.createElement('script');
@@ -368,6 +384,13 @@
                             Satellite Intensity
                         </label>
                         <input type="text" id="globe-si" data-slider="true" data-slider-range="3,12" data-slider-step="1" data-slider-highlight="true" value="8"/>
+
+                        <label>
+                            Load Dummy Data
+                        </label>
+                        <div class="switch">
+                            <input type="checkbox" id="globe-dd" value="1" checked>
+                        </div>
                     </div>
 
                     <div id="apply-button" class="button">Apply</div>

@@ -49,37 +49,27 @@ h3 {
     left: 10px;
     cursor: pointer;
     opacity: 0;
+    -webkit-animation: pulsate 5s;
+    -webkit-animation-iteration-count: 10; 
+    animation: pulsate 5s ease-out;
+    animation-iteration-count: 10; 
+}
+
+@-webkit-keyframes pulsate { 
+    0% {opacity: .3;}
+    50% {opacity: 1.0;}
+    100% {opacity: 0.3;}
+}
+
+@keyframes pulsate { 
+    0% {opacity: 0.3;}
+    50% {opacity: 1.0;}
+    100% {opacity: 0.3;}
 }
 
 #canvas {
     margin: 0;
     padding: 0;
-}
-
-
-.btn {
-    font-size: 10pt;
-    padding: 6px;
-}
-
-#pin-lat-lon *{
-    width:30%;
-    margin-right: 10px;
-
-}
-
-#satellite-lat-lon input{
-    width:30%;
-    margin-right: 10px;
-
-}
-
-#satellite-input {
-    display: none;
-}
-
-#markers-input {
-    display: none;
 }
 
 #control-panel {
@@ -327,3 +317,11 @@ label {
     padding-left: 3px;
 
 }
+
+.switch {
+    display: inline-block;
+    width: 40%;
+
+
+}
+
