@@ -214,6 +214,13 @@
             $(function() {
                 var open = false;
 
+
+                if(!Detector.webgl)
+                {
+                    Detector.addGetWebGLMessage({parent: document.getElementById("container")});
+                    return;
+                }
+
                 window.addEventListener( 'resize', onWindowResize, false );
 
                 $("#globe-color").spectrum({
@@ -295,7 +302,6 @@
 
                 /* Webgl stuff */
 
-                Detector.addGetWebGLMessage({parent: document.getElementById("globe")});
 
                 /* web font stuff*/
                 var wf = document.createElement('script');

@@ -22,14 +22,16 @@ var Detector = {
         element.style.width = '400px';
         element.style.margin = '5em auto 0';
 
-        if ( !this.webgl ) {
+        if (!this.webgl ) {
 
             element.innerHTML = window.WebGLRenderingContext ? [
                 'Your graphics card does not seem to support <a href="http://khronos.org/webgl/wiki/Getting_a_WebGL_Implementation">WebGL</a>.<br />',
-                'Find out how to get it <a href="http://get.webgl.org/">here</a>.'
+                'Find out how to get it <a href="http://get.webgl.org/">here</a>.<br />',
+                'Check out the repo on <a href="http://github.com/arscan/encom-globe">Github</a> to see what this looks like.'
             ].join( '\n' ) : [
                 'Your browser does not seem to support <a href="http://khronos.org/webgl/wiki/Getting_a_WebGL_Implementation">WebGL</a>.<br/>',
-                'Find out how to get it <a href="http://get.webgl.org/">here</a>.'
+                'Find out how to get it <a href="http://get.webgl.org/">here</a>.<br />',
+                'Check out the repo on <a href="http://github.com/arscan/encom-globe">Github</a> to see what this looks like.'
             ].join( '\n' );
 
         }
