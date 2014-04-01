@@ -30,6 +30,8 @@
     "Gruntfile.js",
     "data.json",
     "package.json",
+    "resources/point_picker.png",
+    "resources/thumbprint.png",
     "README.md"
   ],
   "dependencies":{
