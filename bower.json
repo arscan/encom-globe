@@ -1,7 +1,7 @@
 {
   "name": "encom-globe",
   "main": "encom-globe.js",
-  "version": "0.6.0",
+  "version": "0.6.2",
   "homepage": "https://github.com/arscan/encom-globe",
   "authors": [
     "Rob Scanlon <robscanlon@gmail.com>"
