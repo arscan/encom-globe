@@ -4,7 +4,7 @@
  * Copyright (c) 2013-2014 burninggramma
  * https://github.com/burninggramma/quadtree2.js
  *
- * Compiled: 2014-03-21
+ * Compiled: 2014-03-28
  *
  * quadtree2 is licensed under the MIT License.
  * http://www.opensource.org/licenses/mit-license.php
@@ -273,7 +273,7 @@
                     }
                 },
                 updateObjectQuadrants: function(a) {
-                    var b, c = i.quadrants_[a[k.id]], d = m.getSmallestIntersectingQuadrants(a), f = Object.keys(c), g = Object.keys(d), h = e.arrayDiffs(f, g), j = h[0], l = h[1];
+                    var b, c = i.quadrants_[a[k.id]], d = m.getSmallestIntersectingQuadrants(a), f = e.getIdsOfObjects(c), g = e.getIdsOfObjects(d), h = e.arrayDiffs(f, g), j = h[0], l = h[1];
                     for (b = 0; b < l.length; b++) m.populateSubtree(a, d[l[b]]);
                     for (b = 0; b < j.length; b++) c[j[b]] && m.removeObjectFromQuadrant(a, c[j[b]]);
                 },
@@ -430,6 +430,11 @@
             thrower: function(a, b, c) {
                 var d = a;
                 throw c && (d += "_" + c), b && (d += " - "), b && c && (d += c + ": "), b && (d += b), new Error(d);
+            },
+            getIdsOfObjects: function(a) {
+                var b = [];
+                for (var c in a) b.push(a[c].id_);
+                return b;
             },
             compare: function(a, b) {
                 return a - b;

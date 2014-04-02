@@ -4,6 +4,10 @@
     return Object.prototype.toString.call(a) === "[object Array]";
   };
 
+  var defined = function(a) {
+    return a !== undef;
+  };
+
   function Vec2(x, y) {
     if (!(this instanceof Vec2)) {
       return new Vec2(x, y);
@@ -23,15 +27,15 @@
 
   Vec2.prototype = {
     change : function(fn) {
-      if (fn) {
+      if (typeof fn === 'function') {
         if (this.observers) {
           this.observers.push(fn);
         } else {
           this.observers = [fn];
         }
-      } else if (this.observers) {
+      } else if (this.observers && this.observers.length) {
         for (var i=this.observers.length-1; i>=0; i--) {
-          this.observers[i](this);
+          this.observers[i](this, fn);
         }
       }
 
@@ -40,18 +44,22 @@
 
     ignore : function(fn) {
       if (this.observers) {
-        var o = this.observers, l = o.length;
-        while(l--) {
-          o[l] === fn && o.splice(l, 1);
+        if (!fn) {
+          this.observers = [];
+        } else {
+          var o = this.observers, l = o.length;
+          while(l--) {
+            o[l] === fn && o.splice(l, 1);
+          }
         }
       }
       return this;
     },
 
     // set x and y
-    set: function(x, y, silent) {
+    set: function(x, y, notify) {
       if('number' != typeof x) {
-        silent = y;
+        notify = y;
         y = x.y;
         x = x.x;
       }
@@ -60,11 +68,16 @@
         return this;
       }
 
+      var orig = null;
+      if (notify !== false && this.observers && this.observers.length) {
+        orig = this.clone();
+      }
+
       this.x = Vec2.clean(x);
       this.y = Vec2.clean(y);
 
-      if(silent !== false) {
-        return this.change();
+      if(notify !== false) {
+        return this.change(orig);
       }
     },
 
@@ -89,52 +102,78 @@
     },
 
     // Add the incoming `vec2` vector to this vector
-    add : function(vec2, returnNew) {
+    add : function(x, y, returnNew) {
+
+      if (typeof x != 'number') {
+        returnNew = y;
+        if (isArray(x)) {
+          y = x[1];
+          x = x[0];
+        } else {
+          y = x.y;
+          x = x.x;
+        }
+      }
+
+      x += this.x;
+      y += this.y;
+
+
       if (!returnNew) {
-        this.x += vec2.x; this.y += vec2.y;
-        return this.change();
+        return this.set(x, y);
       } else {
         // Return a new vector if `returnNew` is truthy
-        return new (this.constructor)(
-          this.x + vec2.x,
-          this.y + vec2.y
-        );
+        return new (this.constructor)(x, y);
       }
     },
 
     // Subtract the incoming `vec2` from this vector
-    subtract : function(vec2, returnNew) {
+    subtract : function(x, y, returnNew) {
+      if (typeof x != 'number') {
+        returnNew = y;
+        if (isArray(x)) {
+          y = x[1];
+          x = x[0];
+        } else {
+          y = x.y;
+          x = x.x;
+        }
+      }
+
+      x = this.x - x;
+      y = this.y - y;
+
       if (!returnNew) {
-        this.x -= vec2.x; this.y -= vec2.y;
-        return this.change();
+        return this.set(x, y);
       } else {
         // Return a new vector if `returnNew` is truthy
-        return new (this.constructor)(
-          this.x - vec2.x,
-          this.y - vec2.y
-        );
+        return new (this.constructor)(x, y);
       }
     },
 
     // Multiply this vector by the incoming `vec2`
-    multiply : function(vec2, returnNew) {
-      var x,y;
-      if ('number' !== typeof vec2) { //.x !== undef) {
-        x = vec2.x;
-        y = vec2.y;
-
-      // Handle incoming scalars
-      } else {
-        x = y = vec2;
+    multiply : function(x, y, returnNew) {
+      if (typeof x != 'number') {
+        returnNew = y;
+        if (isArray(x)) {
+          y = x[1];
+          x = x[0];
+        } else {
+          y = x.y;
+          x = x.x;
+        }
+      } else if (typeof y != 'number') {
+        returnNew = y;
+        y = x;
       }
 
+      x *= this.x;
+      y *= this.y;
+
       if (!returnNew) {
-        return this.set(this.x * x, this.y * y);
+        return this.set(x, y);
       } else {
-        return new (this.constructor)(
-          this.x * x,
-          this.y * y
-        );
+        return new (this.constructor)(x, y);
       }
     },
 
@@ -207,9 +246,14 @@
     // Determine if another `Vec2`'s components match this one's
     // also accepts 2 scalars
     equal : function(v, w) {
-      if (w === undef) {
-        w = v.y;
-        v = v.x;
+      if (typeof v != 'number') {
+        if (isArray(v)) {
+          w = v[1];
+          v = v[0];
+        } else {
+          w = v.y;
+          v = v.x;
+        }
       }
 
       return (Vec2.clean(v) === this.x && Vec2.clean(w) === this.y);
@@ -289,14 +333,17 @@
 
     // Perform linear interpolation between two vectors
     // amount is a decimal between 0 and 1
-    lerp : function(vec, amount) {
-      return this.add(vec.subtract(this, true).multiply(amount), true);
+    lerp : function(vec, amount, returnNew) {
+      return this.add(vec.subtract(this, true).multiply(amount), returnNew);
     },
 
     // Get the skew vector such that dot(skew_vec, other) == cross(vec, other)
-    skew : function() {
-      // Returns a new vector.
-      return new (this.constructor)(-this.y, this.x);
+    skew : function(returnNew) {
+      if (!returnNew) {
+        return this.set(-this.y, this.x)
+      } else {
+        return new (this.constructor)(-this.y, this.x);
+      }
     },
 
     // calculate the dot product between
@@ -317,15 +364,19 @@
     },
 
     // Divide this vector's components by a scalar
-    divide : function(vec2, returnNew) {
-      var x,y;
-      if ('number' !== typeof vec2) {
-        x = vec2.x;
-        y = vec2.y;
-
-      // Handle incoming scalars
-      } else {
-        x = y = vec2;
+    divide : function(x, y, returnNew) {
+      if (typeof x != 'number') {
+        returnNew = y;
+        if (isArray(x)) {
+          y = x[1];
+          x = x[0];
+        } else {
+          y = x.y;
+          x = x.x;
+        }
+      } else if (typeof y != 'number') {
+        returnNew = y;
+        y = x;
       }
 
       if (x === 0 || y === 0) {

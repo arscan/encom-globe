@@ -31,11 +31,11 @@ module.exports = function(grunt) {
             main : {
                 files: [
                 {
-                    src: 'node_modules/quadtree2/quadtree2.js',
+                    src: 'bower_components/quadtree2/quadtree2.js',
                     dest: 'include/quadtree2.js'
                 },
                 {
-                    src: 'node_modules/quadtree2/node_modules/vec2/vec2.js',
+                    src: 'bower_components/vec2/vec2.js',
                     dest: 'include/vec2.js'
                 }]
             }

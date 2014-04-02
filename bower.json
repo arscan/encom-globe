@@ -36,6 +36,8 @@
   ],
   "dependencies":{
       "threejs": "r66",
-      "TweenJS": "release_v0.5.1"
+      "TweenJS": "release_v0.5.1",
+      "quadtree2": "burninggramma/quadtree2.js",
+      "vec2": "tmpvar/vec2.js"
   }
 }
