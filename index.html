@@ -7,7 +7,6 @@
         <!-- these are just for the demo page / options -->
         <script src="http://code.jquery.com/jquery-2.0.3.min.js"></script>
         <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.2/jquery-ui.min.js"></script>
-
         <script src="include/spectrum.js"></script>
         <link href="include/spectrum.css" rel="stylesheet" type="text/css" />
         <script src="include/jquery.switchButton.js"></script>
@@ -18,16 +17,11 @@
         <link href="styles.css" rel="stylesheet" type="text/css" />
 
         <!-- required for the application -->
-        <script src="include/vec2.js"></script>
-        <script src="include/quadtree2.js"></script>
-        <script src="include/three.min.js"></script>
-        <script src="include/tween.min.js"></script>
-        <script src="include/pusher.color.js"></script>
         <script src="data.json"></script>
+        <script src="grid.json"></script>
         <script src="build/encom-globe.js"></script>
 
         <script>
-
 
             var globe;
             var globeCount = 0;
@@ -43,14 +37,15 @@
                 globe = new ENCOM.Globe(window.innerWidth, window.innerHeight, {
                     font: "Inconsolata",
                     data: newData, // copy the data array
+                    tiles: grid.tiles,
                     baseColor: $("#globe-color").val(),
                     markerColor: $("#marker-color").val(),
                     pinColor: $("#pin-color").val(),
                     satelliteColor: $("#satellite-color").val(),
                     scale: parseFloat($("#globe-scale").val()),
                     dayLength: 1000 * parseFloat($("#globe-spr").val()),
-                    pointsPerDegree: parseFloat($("#globe-ppd").val()),
-                    pointSize: parseFloat($("#globe-ps").val()),
+                    // pointsPerDegree: parseFloat($("#globe-ppd").val()),
+                    // pointSize: parseFloat($("#globe-ps").val()),
                     introLinesDuration: parseFloat($("#globe-id").val()),
                     maxPins: parseFloat($("#globe-mp").val()),
                     maxMarkers: parseFloat($("#globe-mm").val()),
@@ -356,6 +351,7 @@
                         </label>
                         <input type="text" id="globe-spr" data-slider="true" data-slider-range="1, 120" data-slider-step="1" data-slider-highlight="true" value="28"/>
 
+                        <!--
                         <label>
                             Points per Degree
                         </label>
@@ -365,6 +361,7 @@
                             Point Size
                         </label>
                         <input type="text" id="globe-ps" data-slider="true" data-slider-range=".1,1.0" data-slider-step=".1" data-slider-highlight="true" value=".6"/>
+                        -->
 
                         <label>
                             Intro Duration (ms)

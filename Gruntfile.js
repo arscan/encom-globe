@@ -24,8 +24,11 @@ module.exports = function(grunt) {
             options: {
                 livereload: true
             },
-            tasks: ['concat'],
-            files: ['src/*.js', 'index.html', 'styles.css', 'Gruntfile.js']
+            tasks: ['browserify'],
+            files: ['src/*.js', 'index.html', 'styles.css', 'Gruntfile.js', 'browserify.js']
+        },
+        browserify: {
+            'build/<%= pkg.name %>.js': ['browserify.js']
         },
         copy: {
             main : {
@@ -39,13 +42,23 @@ module.exports = function(grunt) {
                     dest: 'include/vec2.js'
                 }]
             }
+        },
+        shell: {
+            buildgrid: {
+                command: "bin/buildgrid -r 500 -o grid.json"
+            }
         }
+
     });
 
 
     grunt.loadNpmTasks('grunt-contrib-concat');
     grunt.loadNpmTasks('grunt-contrib-watch');
+    grunt.loadNpmTasks('grunt-shell');
     grunt.loadNpmTasks('grunt-contrib-copy');
+    grunt.loadNpmTasks('grunt-browserify');
+
+    grunt.registerTask('buildgrid', ['shell:buildgrid']);
 
 
 };

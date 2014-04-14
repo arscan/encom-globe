@@ -1,3 +1,5 @@
+var THREE = require('three');
+
 // based on http://stemkoski.github.io/Three.js/Texture-Animation.html
 var TextureAnimator = function(texture, tilesVert, tilesHoriz, numTiles, tileDispDuration, repeatAtTile) 
 {   
@@ -57,3 +59,5 @@ var TextureAnimator = function(texture, tilesVert, tilesHoriz, numTiles, tileDis
     }
 
 };
+
+module.exports = TextureAnimator;

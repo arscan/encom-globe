@@ -1,0 +1,31 @@
+#!/usr/bin/env node
+
+var argv = require('minimist')(process.argv.slice(2));
+var Hexasphere = require('hexasphere.js');
+
+var radius = 30;
+var numDivisions = 45;
+var scale = .55; 
+
+if(argv.r){
+    radius = parseInt(argv.r);
+}
+if(argv.d){
+    numDivisions = parseInt(argv.d);
+}
+if(argv.s){
+    scale = parseFloat(argv.s);
+}
+
+var hexasphere = new Hexasphere(radius, numDivisions, scale);
+var output = "var grid = " + JSON.stringify(hexasphere, ['tiles', 'centerPoint', 'boundary', 'x', 'y', 'z']) + ";";
+
+if(argv.o){
+    var fs = require('fs');
+
+    fs.writeFile(argv.o, output);
+
+} else {
+    console.log(output);
+}
+
