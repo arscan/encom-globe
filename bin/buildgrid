@@ -1,11 +1,17 @@
 #!/usr/bin/env node
 
-var argv = require('minimist')(process.argv.slice(2));
+
+
+var argv = require('minimist')(process.argv.slice(2)),
+    PNG = require('pngjs').PNG,
+    fs = require('fs');
+
 var Hexasphere = require('hexasphere.js');
 
 var radius = 30;
-var numDivisions = 45;
-var scale = .55; 
+var numDivisions = 35;
+var scale = .45; 
+var map = argv.m;
 
 if(argv.r){
     radius = parseInt(argv.r);
@@ -18,14 +24,83 @@ if(argv.s){
 }
 
 var hexasphere = new Hexasphere(radius, numDivisions, scale);
-var output = "var grid = " + JSON.stringify(hexasphere, ['tiles', 'centerPoint', 'boundary', 'x', 'y', 'z']) + ";";
 
-if(argv.o){
-    var fs = require('fs');
+var o = {tiles: []};
 
-    fs.writeFile(argv.o, output);
+var latLonToXY = function(width, height, lat,lon){
 
-} else {
-    console.log(output);
-}
+    var x = Math.floor(width/2.0 + (width/360.0)*lon);
+    var y = Math.floor((height/2.0 + (height/180.0)*lat));
+
+    return {x: x, y:y};
+};
+
+var xyToIdx = function(x,y, width){
+    return (width * y + x) << 2;
+};
+
+var rnd = function(num){
+    return Math.round(num * 100) / 100;
+};
+
+fs.createReadStream(map)
+    .pipe(new PNG({
+        filterType: 4
+    }))
+    .on('parsed', function() {
+        for(var i = 0; i< hexasphere.tiles.length; i++){
+            var count = 0;
+            for(var j = 0; j< hexasphere.tiles[i].boundary.length; j++){
+                var latLon = hexasphere.tiles[i].getLatLon(radius,j);
+                var xy = latLonToXY(this.width, this.height, latLon.lat, latLon.lon);
+                var idx = xyToIdx(xy.x, xy.y, this.width);
+                count += 255 - this.data[idx];
+            }
+
+            latLon = hexasphere.tiles[i].getLatLon(radius);
+            xy = latLonToXY(this.width, this.height, latLon.lat, latLon.lon);
+            idx = xyToIdx(xy.x, xy.y, this.width);
+            count += 255 - this.data[idx];
+
+            var size = (count/(hexasphere.tiles[i].boundary.length + 1))/255;
+
+            if(size > .1){
+
+                /*
+                var c = {
+                    x: rnd(hexasphere.tiles[i].centerPoint.x),
+                    y: rnd(hexasphere.tiles[i].centerPoint.y),
+                    z: rnd(hexasphere.tiles[i].centerPoint.z)
+                };
+               */
+
+                var tile = {lat: rnd(latLon.lat), lon: rnd(latLon.lon), b: [] };
+                var scale = size - Math.random() * .25;
+
+                for(var j = 0; j< hexasphere.tiles[i].boundary.length; j++){
+                    var newPoint = hexasphere.tiles[i].boundary[j].segment(hexasphere.tiles[i].centerPoint, size);
+                    tile.b.push({
+                        x: rnd(newPoint.x),
+                        y: rnd(newPoint.y),
+                        z: rnd(newPoint.z)
+                    });
+                }
+
+                o.tiles.push(tile);
+            }
+        }
+
+        var output = "var grid = " + JSON.stringify(o) + ";";
+
+        if(argv.o){
+            var fs = require('fs');
+
+            fs.writeFile(argv.o, output);
+
+        } else {
+            console.log(output);
+        }
+
+    });
+
 

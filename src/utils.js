@@ -90,14 +90,6 @@ var utils = {
       return canvas;
 
   },
-  latLonFromXYZ: function(x, y, z, radius){
-      var theta = Math.acos(y / radius); //lat 
-      var phi = (Math.atan2(x ,z) + Math.PI/2) % (Math.PI *2); // lon
-      return {
-          lat: 180 * theta / Math.PI - 90,
-          lon: (360 * phi / (2* Math.PI))
-      };
-  }
 
 };
 

@@ -1,17 +1,16 @@
 {
   "name": "encom-globe",
-  "version": "0.0.0",
-  "description": "webgl-encom-globe",
+  "version": "0.1.0",
+  "description": "encom-globe",
   "main": "src/Globe.js",
   "devDependencies": {
     "minimist": "0.0.8",
     "grunt": "~0.4.2",
     "grunt-contrib-watch": "~0.5.3",
-    "grunt-contrib-concat": "~0.3.0",
-    "grunt-contrib-copy": "~0.5.0",
     "grunt-shell": "~0.6.4",
     "browserify": "~3.41.0",
-    "grunt-browserify": "~2.0.7"
+    "grunt-browserify": "~2.0.7",
+    "pngjs": "~0.4.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
