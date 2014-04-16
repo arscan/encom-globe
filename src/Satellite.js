@@ -198,6 +198,7 @@ var Satellite = function(lat, lon, altitude, scene, _opts, canvas, texture){
     geometry = new THREE.PlaneGeometry(opts.size * 150, opts.size * 150,1,1);
     material = new THREE.MeshBasicMaterial({
         map : this.texture,
+        depthTest: false,
         transparent: true
     });
 

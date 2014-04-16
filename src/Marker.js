@@ -85,7 +85,7 @@ var Marker = function(lat, lon, text, altitude, previous, scene, _opts){
         scene._encom_markerTexture = createMarkerTexture(this.opts.markerColor);
     }
 
-    markerMaterial = new THREE.SpriteMaterial({map: scene._encom_markerTexture, opacity: .7, depthTest: false, fog: true});
+    markerMaterial = new THREE.SpriteMaterial({map: scene._encom_markerTexture, opacity: .7, depthTest: true, fog: true});
     this.marker = new THREE.Sprite(markerMaterial);
 
     this.marker.scale.set(0, 0);
@@ -99,7 +99,7 @@ var Marker = function(lat, lon, text, altitude, previous, scene, _opts){
         map : labelTexture,
         useScreenCoordinates: false,
         opacity: 0,
-        depthTest: false,
+        depthTest: true,
         fog: true
     });
 

@@ -86,7 +86,7 @@ var Pin = function(lat, lon, text, altitude, scene, smokeProvider, _opts){
        map : labelTexture,
        useScreenCoordinates: false,
        opacity:0,
-       depthTest: false,
+       depthTest: true,
        fog: true
     });
 
@@ -98,7 +98,7 @@ var Pin = function(lat, lon, text, altitude, scene, smokeProvider, _opts){
 
    topTexture = new THREE.Texture(createTopCanvas(opts.topColor));
    topTexture.needsUpdate = true;
-   topMaterial = new THREE.SpriteMaterial({map: topTexture, depthTest: false, fog: true, opacity: 0});
+   topMaterial = new THREE.SpriteMaterial({map: topTexture, depthTest: true, fog: true, opacity: 0});
    this.topSprite = new THREE.Sprite(topMaterial);
    this.topSprite.scale.set(20, 20);
    this.topSprite.position.set(point.x * altitude, point.y * altitude, point.z * altitude);

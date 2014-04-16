@@ -54,19 +54,19 @@ var createParticles = function(){
         "void main()",
         "{",
         "   vec3 newPos = position;",
-        "   float opacity = 0.0;",
+        "   float opacityVal = 0.0;",
         "   float introStart = INTRODURATION * ((180.0 + lng)/360.0);",
         "   if(currentTime > introStart){",
-        "      opacity = 1.0;",
+        "      opacityVal = 1.0;",
         "   }",
         "   if(currentTime > introStart && currentTime < introStart + INTRODURATION / 8.0){",
         "      newPos = position * INTROALTITUDE;",
-        "      opacity = .3;",
+        "      opacityVal = .3;",
         "   }",
         "   if(currentTime > introStart + INTRODURATION / 8.0 && currentTime < introStart + INTRODURATION / 8.0 + 200.0){",
         "      newPos = position * (1.0 + ((INTROALTITUDE-1.0) * (1.0-(currentTime - introStart-(INTRODURATION/8.0))/200.0)));",
         "   }",
-        "   vColor = vec4( color, opacity );", //     set color associated to vertex; use later in fragment shader.
+        "   vColor = vec4( color, opacityVal );", //     set color associated to vertex; use later in fragment shader.
         "   gl_Position = projectionMatrix * modelViewMatrix * vec4(newPos, 1.0);",
         "}"
     ].join("\n");
@@ -75,8 +75,9 @@ var createParticles = function(){
         "varying vec4 vColor;",     
         "void main()", 
         "{",
+        "   gl_FragColor = vColor;",
         "   float depth = gl_FragCoord.z / gl_FragCoord.w;",
-        "   float fogFactor = smoothstep(" + (parseInt(this.cameraDistance)-200) +".0," + (parseInt(this.cameraDistance+375)) +".0, depth );",
+        "   float fogFactor = smoothstep(" + (parseInt(this.cameraDistance)-200) +".0," + (parseInt(this.cameraDistance+200)) +".0, depth );",
         "   vec3 fogColor = vec3(0.0);",
         "   gl_FragColor = mix( vColor, vec4( fogColor, gl_FragColor.w ), fogFactor );",
         "}"
@@ -363,100 +364,14 @@ function Globe(width, height, opts){
 /* public globe functions */
 
 Globe.prototype.init = function(cb){
-    //var callbackCount = 0,
-    //img = document.createElement('img'),
-    //projectionCanvas = document.createElement('canvas'),
-    //projectionContext = projectionCanvas.getContext('2d');
-    //_this = this;
 
-    /*
-    document.body.appendChild(projectionCanvas);
-
-    var registerCallback = function(){
-        callbackCount++;
-
-        return function(){
-
-            callbackCount--;
-
-            if(callbackCount == 0){
-                //image has loaded, may rsume
-                projectionCanvas.width = img.width;
-                projectionCanvas.height = img.height;
-                projectionContext.drawImage(img, 0, 0, img.width, img.height);
-
-                if(_this.tiles.length == 0){
-                    var hexasphere = new Hexasphere(500, 5, .95);
-                    _this.tiles = hexasphere.tiles;
-                }
-
-                _this.earthTiles = [];
-                
-                var pixelData = projectionContext.getImageData(0,0,img.width, img.height);;
-
-                for(var i = 0; i< _this.tiles.length; i++){
-                    var latlon = utils.latLonFromXYZ(_this.tiles[i].centerPoint.x, _this.tiles[i].centerPoint.y, _this.tiles[i].centerPoint.z, 500);
-                    var point = latLonToXYZ(img.width, img.height, latlon.lat, latlon.lon);
-                    if(pixelData.data[(point.y * pixelData.width + point.x) * 4] === 0){
-                        _this.earthTiles.push(_this.tiles[i]);
-                    };
-                }
-
-                _this.tiles = null; // this is messy, will clean up later
-                
-                document.body.removeChild(projectionCanvas);
-
-                // create the camera
-
-                _this.camera = new THREE.PerspectiveCamera( 50, _this.width / _this.height, 1, _this.cameraDistance + 250 );
-                _this.camera.position.z = _this.cameraDistance;
-
-                _this.cameraAngle=(Math.PI * 2) * .5;
-
-                // create the scene
-
-                _this.scene = new THREE.Scene();
-
-                _this.scene.fog = new THREE.Fog( 0x000000, _this.cameraDistance-200, _this.cameraDistance+250 );
-
-                createIntroLines.call(_this);
-
-                // pregenerate the satellite canvas
-                var numFrames = 50;
-                var pixels = 100;
-                var rows = 10;
-                var waveStart = Math.floor(numFrames/8);
-                var numWaves = 8;
-                var repeatAt = Math.floor(numFrames-2*(numFrames-waveStart)/numWaves)+1;
-                // _this.satelliteCanvas = createSatelliteCanvas.call(this, numFrames, pixels, rows, waveStart, numWaves);
-
-                // create the smoke particles
-
-                _this.smokeProvider = new SmokeProvider(_this.scene);
-
-                createParticles.call(_this);
-
-                cb();
-            }
-
-        }
-    };
-
-    img.addEventListener('load', registerCallback());
-
-    img.src = this.mapUrl;
-   */
-
-                // create the camera
-
-                
+    // create the camera
     this.camera = new THREE.PerspectiveCamera( 50, this.width / this.height, 1, this.cameraDistance + 250 );
     this.camera.position.z = this.cameraDistance;
 
     this.cameraAngle=(Math.PI * 2) * .5;
 
     // create the scene
-
     this.scene = new THREE.Scene();
 
     this.scene.fog = new THREE.Fog( 0x000000, this.cameraDistance-200, this.cameraDistance+250 );
