@@ -46,8 +46,6 @@
                     satelliteColor: $("#satellite-color").val(),
                     scale: parseFloat($("#globe-scale").val()),
                     dayLength: 1000 * parseFloat($("#globe-spr").val()),
-                    // pointsPerDegree: parseFloat($("#globe-ppd").val()),
-                    // pointSize: parseFloat($("#globe-ps").val()),
                     introLinesDuration: parseFloat($("#globe-id").val()),
                     maxPins: parseFloat($("#globe-mp").val()),
                     maxMarkers: parseFloat($("#globe-mm").val()),
@@ -316,10 +314,15 @@
     </head>
     <body>
         <div id="container">
+            <div id="banner">
+                Encom Globe
+                <small>by <a href="http://twitter.com/arscan">@arscan</a></small>
+
+            </div>
             <div id="globe">
             </div>
             <div id="info-box">
-                Made for no good reason by <a class="arscan" href="http://twitter.com/arscan">@arscan</a>.  Based on the <a href="http://work.gmunk.com/TRON-Board-Room">boardroom scene</a> in Disney's <a href="http://www.imdb.com/title/tt1104001/">Tron: Legacy</a>.  Source on <a href="http://github.com/arscan/encom-globe/">Github</a>.
+                A tribute to the <a href="http://work.gmunk.com/TRON-Board-Room">boardroom scene</a> in Disney's <a href="http://www.imdb.com/title/tt1104001/">Tron: Legacy</a>.  Source on <a href="http://github.com/arscan/encom-globe/" class="github-link">Github</a>.
             </div>
             <div id="options">
                 <div id="options-content">

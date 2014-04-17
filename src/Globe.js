@@ -369,7 +369,7 @@ Globe.prototype.init = function(cb){
     this.camera = new THREE.PerspectiveCamera( 50, this.width / this.height, 1, this.cameraDistance + 250 );
     this.camera.position.z = this.cameraDistance;
 
-    this.cameraAngle=(Math.PI * 2) * .5;
+    this.cameraAngle=(Math.PI * 4);
 
     // create the scene
     this.scene = new THREE.Scene();
@@ -378,21 +378,12 @@ Globe.prototype.init = function(cb){
 
     createIntroLines.call(this);
 
-    // pregenerate the satellite canvas
-    var numFrames = 50;
-    var pixels = 100;
-    var rows = 10;
-    var waveStart = Math.floor(numFrames/8);
-    var numWaves = 8;
-    var repeatAt = Math.floor(numFrames-2*(numFrames-waveStart)/numWaves)+1;
-    // this.satelliteCanvas = createSatelliteCanvas.call(this, numFrames, pixels, rows, waveStart, numWaves);
-
     // create the smoke particles
 
     this.smokeProvider = new SmokeProvider(this.scene);
 
     createParticles.call(this);
-    cb();
+    setTimeout(cb, 500);
 };
 
 Globe.prototype.destroy = function(callback){
