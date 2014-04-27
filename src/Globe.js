@@ -369,7 +369,7 @@ Globe.prototype.init = function(cb){
     this.camera = new THREE.PerspectiveCamera( 50, this.width / this.height, 1, this.cameraDistance + 250 );
     this.camera.position.z = this.cameraDistance;
 
-    this.cameraAngle=(Math.PI * 4);
+    this.cameraAngle=(Math.PI);
 
     // create the scene
     this.scene = new THREE.Scene();
