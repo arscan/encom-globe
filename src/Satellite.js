@@ -133,7 +133,6 @@ var createCanvas = function(numFrames, pixels, rows, waveStart, numWaves, waveCo
 var Satellite = function(lat, lon, altitude, scene, _opts, canvas, texture){
 
     var geometry, 
-    material,
     point = utils.mapPoint(lat, lon),
     opts,
     numFrames,
@@ -177,6 +176,8 @@ var Satellite = function(lat, lon, altitude, scene, _opts, canvas, texture){
         }
     }
 
+    this.opts = opts;
+
     if(!canvas){
         this.canvas = createCanvas(numFrames, pixels, rows, waveStart, opts.numWaves, opts.waveColor, opts.coreColor, opts.shieldColor);
         this.texture = new THREE.Texture(this.canvas)
@@ -196,13 +197,13 @@ var Satellite = function(lat, lon, altitude, scene, _opts, canvas, texture){
     }
 
     geometry = new THREE.PlaneGeometry(opts.size * 150, opts.size * 150,1,1);
-    material = new THREE.MeshBasicMaterial({
+    this.material = new THREE.MeshBasicMaterial({
         map : this.texture,
         depthTest: false,
         transparent: true
     });
 
-    this.mesh = new THREE.Mesh(geometry, material);
+    this.mesh = new THREE.Mesh(geometry, this.material);
     this.mesh.tiltMultiplier = Math.PI/2 * (1 - Math.abs(lat / 90));
     this.mesh.tiltDirection = (lat > 0 ? -1 : 1);
     this.mesh.lon = lon;
@@ -215,6 +216,55 @@ var Satellite = function(lat, lon, altitude, scene, _opts, canvas, texture){
     scene.add(this.mesh);
 
 }
+
+Satellite.prototype.changeAltitude = function(_altitude){
+    
+    var newPoint = utils.mapPoint(this.lat, this.lon);
+    newPoint.x *= _altitude;
+    newPoint.y *= _altitude;
+    newPoint.z *= _altitude;
+
+    this.altitude = _altitude;
+
+    this.mesh.position.set(newPoint.x, newPoint.y, newPoint.z);
+
+};
+
+Satellite.prototype.changeCanvas = function(numWaves, waveColor, coreColor, shieldColor){
+    /* private vars */
+    numFrames = 50;
+    pixels = 100;
+    rows = 10;
+    waveStart = Math.floor(numFrames/8);
+
+    if(!numWaves){
+        numWaves = this.opts.numWaves;
+    } else {
+        this.opts.numWaves = numWaves;
+    }
+    if(!waveColor){
+        waveColor = this.opts.waveColor;
+    } else {
+        this.opts.waveColor = waveColor;
+    }
+    if(!coreColor){
+        coreColor = this.opts.coreColor;
+    } else {
+        this.opts.coreColor = coreColor;
+    }
+    if(!shieldColor){
+        shieldColor = this.opts.shieldColor;
+    } else {
+        this.opts.shieldColor = shieldColor;
+    }
+
+    this.canvas = createCanvas(numFrames, pixels, rows, waveStart, numWaves, waveColor, coreColor, shieldColor);
+    this.texture = new THREE.Texture(this.canvas)
+    this.texture.needsUpdate = true;
+    repeatAt = Math.floor(numFrames-2*(numFrames-waveStart)/numWaves)+1;
+    this.animator = new TextureAnimator(this.texture,rows, numFrames/rows, numFrames, 80, repeatAt); 
+    this.material.map = this.texture;
+};
 
 Satellite.prototype.tick = function(cameraPosition, cameraAngle, renderTime) {
     // underscore should be good enough

@@ -42,6 +42,10 @@ var addInitialData = function(){
 
 var createParticles = function(){
 
+    if(this.hexGrid){
+        this.scene.remove(this.hexGrid);
+    }
+
     var pointVertexShader = [
         "#define PI 3.141592653589793238462643",
         "#define DISTANCE 500.0",
@@ -77,7 +81,7 @@ var createParticles = function(){
         "{",
         "   gl_FragColor = vColor;",
         "   float depth = gl_FragCoord.z / gl_FragCoord.w;",
-        "   float fogFactor = smoothstep(" + (parseInt(this.cameraDistance)-200) +".0," + (parseInt(this.cameraDistance+200)) +".0, depth );",
+        "   float fogFactor = smoothstep(" + (parseInt(this.cameraDistance)-200) +".0," + (parseInt(this.cameraDistance+300)) +".0, depth );",
         "   vec3 fogColor = vec3(0.0);",
         "   gl_FragColor = mix( vColor, vec4( fogColor, gl_FragColor.w ), fogFactor );",
         "}"
@@ -197,40 +201,6 @@ var createParticles = function(){
 
     }
 
-    /*
-
-    var addHex = function(i, lat, lng){
-        var k = i * 4;
-        // var C = Math.random()*.25 + .25;
-        var C = 1/this.pointsPerDegree * Math.min(1,this.pointSize * (1 + (Math.random() * (2*this.pointsVariance)) - this.pointsVariance));
-        var B = .866*C;
-        var A = C/2;
-
-        var p1 = utils.mapPoint(lat + 0 - B, lng + A + C - B, 500);
-        var p2 = utils.mapPoint(lat + 0 - B, lng + A - B, 500);
-        var p3 = utils.mapPoint(lat + B - B, lng + 0 - B, 500);
-        var p4 = utils.mapPoint(lat + 2*B - B, lng + A - B, 500);
-        var p5 = utils.mapPoint(lat + 2*B - B, lng + A + C - B, 500);
-        var p6 = utils.mapPoint(lat + B - B, lng + 2*C - B, 500);
-
-        var colorIndex = Math.floor(Math.random()*myColors.length);
-        var colorRGB = myColors[colorIndex].rgb();
-        var color = new THREE.Color();
-
-        color.setRGB(colorRGB[0]/255.0, colorRGB[1]/255.0, colorRGB[2]/255.0);
-
-        addTriangle(k, p1.x, p1.y, p1.z, p2.x, p2.y, p2.z, p6.x, p6.y, p6.z, lat, lng, color);
-        addTriangle(k+1, p2.x, p2.y, p2.z, p6.x, p6.y, p6.z, p3.x, p3.y, p3.z, lat, lng, color);
-        addTriangle(k+2, p3.x, p3.y, p3.z, p6.x, p6.y, p6.z, p5.x, p5.y, p5.z, lat, lng, color);
-        addTriangle(k+3, p4.x, p4.y, p4.z, p3.x, p3.y, p3.z, p5.x, p5.y, p5.z, lat, lng, color);
-
-    };
-
-    for(i = 0; i < this.points.length; i++){
-        addHex.call(this, i, this.points[i].lat, this.points[i].lon);
-    }
-   */
-
     geometry.offsets = [];
 
     var offsets = triangles / chunkSize;
@@ -249,8 +219,8 @@ var createParticles = function(){
 
     geometry.computeBoundingSphere();
 
-    mesh = new THREE.Mesh( geometry, pointMaterial );
-    this.scene.add( mesh );
+    this.hexGrid = new THREE.Mesh( geometry, pointMaterial );
+    this.scene.add( this.hexGrid );
 
 };
 
@@ -331,7 +301,8 @@ function Globe(width, height, opts){
         maxPins: 500,
         maxMarkers: 4,
         data: [],
-        tiles: []
+        tiles: [],
+        viewAngle: 0
     };
 
     for(var i in defaults){
@@ -342,7 +313,8 @@ function Globe(width, height, opts){
             }
         }
     }
-    this.cameraDistance = 1700 / this.scale;
+
+    this.setScale(this.scale);
 
     this.renderer = new THREE.WebGLRenderer( { antialias: true } );
     this.renderer.setSize( this.width, this.height);
@@ -366,7 +338,7 @@ function Globe(width, height, opts){
 Globe.prototype.init = function(cb){
 
     // create the camera
-    this.camera = new THREE.PerspectiveCamera( 50, this.width / this.height, 1, this.cameraDistance + 250 );
+    this.camera = new THREE.PerspectiveCamera( 50, this.width / this.height, 1, this.cameraDistance + 350 );
     this.camera.position.z = this.cameraDistance;
 
     this.cameraAngle=(Math.PI);
@@ -374,7 +346,7 @@ Globe.prototype.init = function(cb){
     // create the scene
     this.scene = new THREE.Scene();
 
-    this.scene.fog = new THREE.Fog( 0x000000, this.cameraDistance-200, this.cameraDistance+250 );
+    this.scene.fog = new THREE.Fog( 0x000000, this.cameraDistance, this.cameraDistance+350 );
 
     createIntroLines.call(this);
 
@@ -416,9 +388,7 @@ Globe.prototype.addPin = function(lat, lon, text){
     var altitude = 1.2;
 
     if(typeof text != "string" || text.length === 0){
-        altitude -= Math.random() * .1;
-    } else {
-        altitude -= Math.random() * .1;
+        altitude -= .05 + Math.random() * .05;
     }
 
     var pin = new Pin(lat, lon, text, altitude, this.scene, this.smokeProvider, opts);
@@ -461,11 +431,13 @@ Globe.prototype.addPin = function(lat, lon, text){
                 hidePins[i].hideLabel();
                 hidePins[i].hideSmoke();
                 hidePins[i].hideTop();
+                hidePins[i].changeAltitude(Math.random() * .05 + 1.05);
             }
         } else if (collisionCount > 0){
             pin.hideLabel();
             pin.hideSmoke();
             pin.hideTop();
+            pin.changeAltitude(Math.random() * .05 + 1.05);
         }
     }
 
@@ -554,6 +526,44 @@ Globe.prototype.addConstellation = function(sats, opts){
 
 };
 
+
+Globe.prototype.setMaxPins = function(_maxPins){
+    this.maxPins = _maxPins;
+
+    while(this.pins.length > this.maxPins){
+        var oldPin = this.pins.shift();
+        this.quadtree.removeObject(oldPin);
+        oldPin.remove();
+    }
+};
+
+Globe.prototype.setMaxMarkers = function(_maxMarkers){
+    this.maxMarkers = _maxMarkers;
+    while(this.markers.length > this.maxMarkers){
+        this.markers.shift().remove();
+    }
+};
+
+Globe.prototype.setBaseColor = function(_color){
+    this.baseColor = _color;
+    createParticles.call(this);
+};
+
+Globe.prototype.setMarkerColor = function(_color){
+    this.markerColor = _color;
+    this.scene._encom_markerTexture = null;
+
+};
+
+Globe.prototype.setPinColor = function(_color){
+    this.pinColor = _color;
+};
+
+Globe.prototype.setScale = function(_scale){
+    this.scale = _scale;
+    this.cameraDistance = 1700/_scale;
+};
+
 Globe.prototype.tick = function(){
 
     if(!this.camera){
@@ -587,9 +597,9 @@ Globe.prototype.tick = function(){
     }
 
 
-    this.camera.position.x = this.cameraDistance * Math.cos(this.cameraAngle);
-    this.camera.position.y = 400;
-    this.camera.position.z = this.cameraDistance * Math.sin(this.cameraAngle);
+    this.camera.position.x = this.cameraDistance * Math.cos(this.cameraAngle) * Math.cos(this.viewAngle);
+    this.camera.position.y = Math.sin(this.viewAngle) * this.cameraDistance;
+    this.camera.position.z = this.cameraDistance * Math.sin(this.cameraAngle) * Math.cos(this.viewAngle);
 
 
     for(var i in this.satellites){
@@ -610,6 +620,8 @@ Globe.prototype.tick = function(){
             this.introLines.children[0].material.opacity = (this.totalRunTime/this.introLinesDuration) * (1 / .1) - .2;
         }if(this.totalRunTime/this.introLinesDuration > .8){
             this.introLines.children[0].material.opacity = Math.max(1-this.totalRunTime/this.introLinesDuration,0) * (1 / .2);
+        } else {
+            this.introLines.children[0].material.opacity = 1;
         }
         this.introLines.rotateY((2 * Math.PI)/(this.introLinesDuration/renderTime));
     } else if(this.introLines){

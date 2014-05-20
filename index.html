@@ -25,8 +25,9 @@
 
         <script>
 
-            var globe;
-            var globeCount = 0;
+            var globe,
+                globeCount = 0;
+
 
             function createGlobe(){
                 var newData = [];
@@ -49,6 +50,7 @@
                     introLinesDuration: parseFloat($("#globe-id").val()),
                     maxPins: parseFloat($("#globe-mp").val()),
                     maxMarkers: parseFloat($("#globe-mm").val()),
+                    viewAngle: parseFloat($("#globe-va").val())
                 });
 
                 $("#globe").append(globe.domElement);
@@ -76,9 +78,13 @@
             }
 
             function animate(){
+
                 if(globe){
                     globe.tick();
                 }
+
+                lastTickTime = Date.now();
+
                 requestAnimationFrame(animate);
             }
 
@@ -220,22 +226,49 @@
 
                 $("#globe-color").spectrum({
                     color: "#ffcc00",
-                    showInput: false
+                    showButtons: false,
+                    showInput: false,
+                    change: function(color){
+                        if(globe){
+                            globe.setBaseColor(color.toHexString());
+                        }
+                    }
                 }); 
 
                 $("#pin-color").spectrum({
                     color: "#8FD8D8",
-                    showInput: false
+                    showButtons: false,
+                    showInput: false,
+                    change: function(color){
+                        if(globe){
+                            globe.setPinColor(color.toHexString());
+                        }
+                    }
                 }); 
 
                 $("#marker-color").spectrum({
                     color: "#ffcc00",
-                    showInput: false
+                    showButtons: false,
+                    showInput: false,
+                    change: function(color){
+                        if(globe){
+                            globe.setMarkerColor(color.toHexString());
+                        }
+                    }
                 }); 
 
                 $("#satellite-color").spectrum({
                     color: "#ff0000",
-                    showInput: false
+                    showButtons: false,
+                    showInput: false,
+                    change: function(color){
+                        if(globe){
+                            for(var x in globe.satellites){
+                                globe.satellites[x].changeCanvas(null, null, color.toHexString());
+                            }
+                        }
+                    }
+
                 }); 
 
                 $("[data-slider]")
@@ -254,6 +287,54 @@
                         });
 
                 $(":checkbox").switchButton();
+
+                $("#globe-scale").bind("slider:changed", function (event, data) {
+                    if(globe){
+                        globe.setScale(data.value);
+                    }
+                });
+
+                $("#globe-va").bind("slider:changed", function (event, data) {
+                    if(globe){
+                        globe.viewAngle = data.value;
+                    }
+                });
+
+                $("#globe-spr").bind("slider:changed", function (event, data) {
+                    if(globe){
+                        globe.dayLength = data.value * 1000;
+
+                    }
+                });
+
+                $("#globe-mp").bind("slider:changed", function (event, data) {
+                    if(globe){
+                        globe.setMaxPins(data.value);
+
+                    }
+                });
+
+                $("#globe-mm").bind("slider:changed", function (event, data) {
+                    if(globe){
+                        globe.setMaxMarkers(data.value);
+                    }
+                });
+
+                $("#globe-sa").bind("slider:changed", function (event, data) {
+                    if(globe){
+                        for(var x in globe.satellites){
+                            globe.satellites[x].changeAltitude(data.value);
+                        }
+                    }
+                });
+
+                $("#globe-si").bind("slider:changed", function (event, data) {
+                    if(globe){
+                        for(var x in globe.satellites){
+                            globe.satellites[x].changeCanvas(data.value);
+                        }
+                    }
+                });
 
                 var docHeight = $(document).height();
 
@@ -322,7 +403,7 @@
             <div id="globe">
             </div>
             <div id="info-box">
-                A tribute to the <a href="http://work.gmunk.com/TRON-Board-Room">boardroom scene</a> in Disney's <a href="http://www.imdb.com/title/tt1104001/">Tron: Legacy</a>.  Source on <a href="http://github.com/arscan/encom-globe/" class="github-link">Github</a>.
+                A tribute to the <a href="http://work.gmunk.com/TRON-Board-Room">boardroom scene</a> in Disney's <a href="http://www.imdb.com/title/tt1104001/">Tron: Legacy</a>.  Built for reuse. Source on <a href="http://github.com/arscan/encom-globe/" class="github-link">Github</a>.
             </div>
             <div id="options">
                 <div id="options-content">
@@ -349,7 +430,12 @@
                         <label>
                             Globe Scale
                         </label>
-                        <input type="text" id="globe-scale" data-slider="true" data-slider-range=".1, 3.0" data-slider-step=".1" data-slider-highlight="true" value="1.0"/>
+                        <input type="text" id="globe-scale" data-slider="true" data-slider-range=".1, 3.0" data-slider-step=".01" data-slider-highlight="true" value="1.0"/>
+
+                        <label>
+                            View Angle
+                        </label>
+                        <input type="text" id="globe-va" data-slider="true" data-slider-range="-1.57, 1.57" data-slider-step=".01" data-slider-highlight="true" value=".1"/>
 
                         <label>
                             Seconds per Rotation
@@ -386,7 +472,7 @@
                         <label>
                             Satellite Altitude
                         </label>
-                        <input type="text" id="globe-sa" data-slider="true" data-slider-range="1.0,3.0" data-slider-step=".01" data-slider-highlight="true" value="1.2"/>
+                        <input type="text" id="globe-sa" data-slider="true" data-slider-range="1.0,3.0" data-slider-step=".01" data-slider-highlight="true" value="1.3"/>
 
                         <label>
                             Satellite Intensity
@@ -401,7 +487,7 @@
                         </div>
                     </div>
 
-                    <div id="apply-button" class="button">Apply</div>
+                    <div id="apply-button" class="button">Reload</div>
 
                     
                 </div>
