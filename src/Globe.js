@@ -81,7 +81,7 @@ var createParticles = function(){
         "{",
         "   gl_FragColor = vColor;",
         "   float depth = gl_FragCoord.z / gl_FragCoord.w;",
-        "   float fogFactor = smoothstep(" + (parseInt(this.cameraDistance)-200) +".0," + (parseInt(this.cameraDistance+300)) +".0, depth );",
+        "   float fogFactor = smoothstep(" + parseInt(this.cameraDistance) +".0," + (parseInt(this.cameraDistance+350)) +".0, depth );",
         "   vec3 fogColor = vec3(0.0);",
         "   gl_FragColor = mix( vColor, vec4( fogColor, gl_FragColor.w ), fogFactor );",
         "}"
@@ -562,6 +562,15 @@ Globe.prototype.setPinColor = function(_color){
 Globe.prototype.setScale = function(_scale){
     this.scale = _scale;
     this.cameraDistance = 1700/_scale;
+    if(this.scene && this.scene.fog){
+        console.log('setting fog');
+       this.scene.fog.near = this.cameraDistance;
+       this.scene.fog.far = this.cameraDistance + 350;
+       createParticles.call(this);
+       this.camera.far = this.cameraDistance + 350;
+       this.camera.updateProjectionMatrix();
+       // this.camera.scale.set(this.scale,this.scale,this.scale);
+    }
 };
 
 Globe.prototype.tick = function(){
