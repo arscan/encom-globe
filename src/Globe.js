@@ -81,7 +81,7 @@ var createParticles = function(){
         "{",
         "   gl_FragColor = vColor;",
         "   float depth = gl_FragCoord.z / gl_FragCoord.w;",
-        "   float fogFactor = smoothstep(" + parseInt(this.cameraDistance) +".0," + (parseInt(this.cameraDistance+350)) +".0, depth );",
+        "   float fogFactor = smoothstep(" + parseInt(this.cameraDistance) +".0," + (parseInt(this.cameraDistance+300)) +".0, depth );",
         "   vec3 fogColor = vec3(0.0);",
         "   gl_FragColor = mix( vColor, vec4( fogColor, gl_FragColor.w ), fogFactor );",
         "}"
@@ -338,7 +338,7 @@ function Globe(width, height, opts){
 Globe.prototype.init = function(cb){
 
     // create the camera
-    this.camera = new THREE.PerspectiveCamera( 50, this.width / this.height, 1, this.cameraDistance + 350 );
+    this.camera = new THREE.PerspectiveCamera( 50, this.width / this.height, 1, this.cameraDistance + 300 );
     this.camera.position.z = this.cameraDistance;
 
     this.cameraAngle=(Math.PI);
@@ -346,7 +346,7 @@ Globe.prototype.init = function(cb){
     // create the scene
     this.scene = new THREE.Scene();
 
-    this.scene.fog = new THREE.Fog( 0x000000, this.cameraDistance, this.cameraDistance+350 );
+    this.scene.fog = new THREE.Fog( 0x000000, this.cameraDistance, this.cameraDistance+300 );
 
     createIntroLines.call(this);
 
@@ -563,13 +563,11 @@ Globe.prototype.setScale = function(_scale){
     this.scale = _scale;
     this.cameraDistance = 1700/_scale;
     if(this.scene && this.scene.fog){
-        console.log('setting fog');
        this.scene.fog.near = this.cameraDistance;
-       this.scene.fog.far = this.cameraDistance + 350;
+       this.scene.fog.far = this.cameraDistance + 300;
        createParticles.call(this);
-       this.camera.far = this.cameraDistance + 350;
+       this.camera.far = this.cameraDistance + 300;
        this.camera.updateProjectionMatrix();
-       // this.camera.scale.set(this.scale,this.scale,this.scale);
     }
 };
 
@@ -617,7 +615,6 @@ Globe.prototype.tick = function(){
 
     for(var i = 0; i< this.satelliteMeshes.length; i++){
         var mesh = this.satelliteMeshes[i];
-        // this.satelliteMeshes[i].rotation.y-=rotateCameraBy;
         mesh.lookAt(this.camera.position);
         mesh.rotateZ(mesh.tiltDirection * Math.PI/2);
         mesh.rotateZ(Math.sin(this.cameraAngle + (mesh.lon / 180) * Math.PI) * mesh.tiltMultiplier * mesh.tiltDirection * -1);
@@ -640,12 +637,10 @@ Globe.prototype.tick = function(){
 
     // do the shaders
 
-    // this.smokeUniforms.currentTime.value = this.totalRunTime;
     this.pointUniforms.currentTime.value = this.totalRunTime;
 
     this.smokeProvider.tick(this.totalRunTime);
 
-    // updateSatellites.call(this, renderTime);
     this.camera.lookAt( this.scene.position );
     this.renderer.render( this.scene, this.camera );
 
