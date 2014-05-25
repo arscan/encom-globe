@@ -10,7 +10,7 @@ A [Demo](http://www.robscanlon.com/encom-globe) is available on my website.
 
 ### Usage
 
-The Encom Globe was written as part of a larger project and with a specific use in mind, but it does provide a certain level of flexibility if you would like to use it yourself as an alternative to the popular [WebGL Globe](http://www.chromeexperiments.com/globe).  The blue markers, orange connected markers, and satellites can be placed wherever and whenever you would like.
+The Encom Globe was written as part of a [larger project](http://www.robscanlon.com/encom-boardroom) and with a specific use in mind, but it does provide a certain level of flexibility if you would like to use it yourself as an alternative to the popular [WebGL Globe](http://www.chromeexperiments.com/globe).  The blue markers, orange connected markers, and satellites can be placed wherever and whenever you would like.
 
 View [index.html](index.html) for a usage example.
 
