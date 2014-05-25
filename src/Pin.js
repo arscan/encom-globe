@@ -1,5 +1,5 @@
 var THREE = require('three'),
-    TWEEN = require('tween'),
+    TWEEN = require('tween.js'),
     utils = require('./utils');
 
 

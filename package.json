@@ -26,8 +26,8 @@
     "hexasphere.js": "*",
     "quadtree2": "~0.5.3",
     "vec2": "~1.5.0",
-    "tween": "~0.8.0",
     "three": "~0.66.2",
-    "pusher.color": "~0.2.4"
+    "pusher.color": "~0.2.4",
+    "tween.js": "~0.13.0"
   }
 }

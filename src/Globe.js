@@ -1,4 +1,4 @@
-var TWEEN = require('tween'),
+var TWEEN = require('tween.js'),
     THREE = require('three'),
     Hexasphere = require('hexasphere.js'),
     Quadtree2 = require('quadtree2'),
