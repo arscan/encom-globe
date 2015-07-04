@@ -382,7 +382,8 @@ Globe.prototype.addPin = function(lat, lon, text){
 
     var opts = {
         lineColor: this.pinColor,
-        topColor: this.pinColor
+        topColor: this.pinColor,
+        font: this.font
     }
 
     var altitude = 1.2;
@@ -457,7 +458,8 @@ Globe.prototype.addMarker = function(lat, lon, text, connected){
     var marker;
     var opts = {
         markerColor: this.markerColor,
-        lineColor: this.markerColor
+        lineColor: this.markerColor,
+        font: this.font
     };
 
     if(typeof connected == "boolean" && connected){
