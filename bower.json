@@ -1,7 +1,6 @@
 {
   "name": "encom-globe",
   "main": "encom-globe.js",
-  "version": "0.6.2",
   "homepage": "https://github.com/arscan/encom-globe",
   "authors": [
     "Rob Scanlon <robscanlon@gmail.com>"
@@ -17,27 +16,15 @@
   "license": "MIT",
   "ignore": [
     "**/.*",
-    "node_modules",
-    "bower_components",
-    "src",
-    "test",
-    "tests",
+    "bin",
     "include",
-    "bower.json",
-    "screenshot.jpg",
-    "styles.css",
-    "index.html",
+    "resources",
+    "src",
+    "browserify.js",
     "Gruntfile.js",
-    "data.json",
+    "index.html",
     "package.json",
-    "resources/point_picker.png",
-    "resources/thumbprint.png",
-    "README.md"
-  ],
-  "dependencies":{
-      "threejs": "r66",
-      "TweenJS": "release_v0.5.1",
-      "quadtree2": "burninggramma/quadtree2.js",
-      "vec2": "tmpvar/vec2.js"
-  }
+    "screenshot.jpg",
+    "styles.css"
+  ]
 }
