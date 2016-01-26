@@ -54,7 +54,7 @@ var fragmentShader = [
     "   gl_FragColor = vColor;", 
     "   float depth = gl_FragCoord.z / gl_FragCoord.w;",
     "   float fogFactor = smoothstep(1500.0, 1800.0, depth );",
-    "   vec3 fogColor = vec3(0.0);",
+    "   vec3 fogColor = vec3(1.0);",
     "   gl_FragColor = mix( vColor, vec4( fogColor, gl_FragColor.w), fogFactor );",
 
     "}"
@@ -89,7 +89,7 @@ var SmokeProvider = function(scene, _opts){
 
     this.uniforms = {
         currentTime: { type: 'f', value: 0.0},
-        color: { type: 'c', value: new THREE.Color("#aaa")},
+        color: { type: 'c', value: new THREE.Color("#666")},
     }
 
     var material = new THREE.ShaderMaterial( {

@@ -24,7 +24,7 @@ var Pin = function(lat, lon, text, altitude, scene, smokeProvider, _opts){
         lineWidth: 1,
         topColor: "#8FD8D8",
         smokeColor: "#FFF",
-        labelColor: "#FFF",
+        labelColor: "#000",
         font: "Inconsolata",
         showLabel: (text.length > 0),
         showTop: (text.length > 0),

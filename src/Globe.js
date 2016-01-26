@@ -82,7 +82,7 @@ var createParticles = function(){
         "   gl_FragColor = vColor;",
         "   float depth = gl_FragCoord.z / gl_FragCoord.w;",
         "   float fogFactor = smoothstep(" + parseInt(this.cameraDistance) +".0," + (parseInt(this.cameraDistance+300)) +".0, depth );",
-        "   vec3 fogColor = vec3(0.0);",
+        "   vec3 fogColor = vec3(1.0);",
         "   gl_FragColor = mix( vColor, vec4( fogColor, gl_FragColor.w ), fogFactor );",
         "}"
     ].join("\n");
@@ -318,6 +318,7 @@ function Globe(width, height, opts){
 
     this.renderer = new THREE.WebGLRenderer( { antialias: true } );
     this.renderer.setSize( this.width, this.height);
+    this.renderer.setClearColor( 0xffffff );
 
     this.renderer.gammaInput = true;
     this.renderer.gammaOutput = true;
@@ -346,7 +347,7 @@ Globe.prototype.init = function(cb){
     // create the scene
     this.scene = new THREE.Scene();
 
-    this.scene.fog = new THREE.Fog( 0x000000, this.cameraDistance, this.cameraDistance+300 );
+    this.scene.fog = new THREE.Fog( 0xFFFFFF, this.cameraDistance, this.cameraDistance+300 );
 
     createIntroLines.call(this);
 
@@ -459,7 +460,8 @@ Globe.prototype.addMarker = function(lat, lon, text, connected){
     var opts = {
         markerColor: this.markerColor,
         lineColor: this.markerColor,
-        font: this.font
+        font: this.font,
+        labelColor: "#000"
     };
 
     if(typeof connected == "boolean" && connected){

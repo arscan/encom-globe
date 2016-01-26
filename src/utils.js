@@ -65,11 +65,11 @@ var utils = {
       context.textAlign = "center";
       context.textBaseline = "middle";
 
-      context.strokeStyle = 'black';
-
-      context.miterLimit = 2;
-      context.lineJoin = 'circle';
-      context.lineWidth = 6;
+      // Stroking the outline looks bad in white
+      // context.strokeStyle = 'white';
+      // context.miterLimit = 2;
+      // context.lineJoin = 'circle';
+      // context.lineWidth = 6;
 
       context.strokeText(text, canvas.width / 2, canvas.height / 2);
 
