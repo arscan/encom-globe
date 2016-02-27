@@ -7,6 +7,10 @@ function createGlobe(){
     tiles: grid.tiles
   });
 
+  globe.setClickHandler(function(id){
+      alert(id);
+  });
+
   // var defaults = {
   //   font: "Inconsolata",
   //   baseColor: "#ffcc00",
@@ -17,7 +21,7 @@ function createGlobe(){
   //   introLinesDuration: 2000,
   //   introLinesColor: "#8FD8D8",
   //   introLinesCount: 60,
-  //   scale: 1.0,
+  //   scale: 1.0, // set to lower if you want the globe to be smaller
   //   dayLength: 28000, // set to 0 if you don't want it to spin
   //   maxPins: 500,
   //   maxMarkers: 4,
@@ -28,11 +32,6 @@ function createGlobe(){
   // };
 
   $("#globe").append(globe.domElement);
-
-  function animate(){
-    globe.tick();
-    requestAnimationFrame(animate);
-  }
 
   /* add some satellites in 4 seconds */
   setTimeout(function(){
@@ -56,8 +55,19 @@ function createGlobe(){
     globe.addConstellation(constellation, opts);
   }, 4000);
 
-  globe.init(animate);
+  /* add some of the yellow markers in 2 seconds */
+  /* probably should be taken out, but left in in case worth being repurposed */
+  setTimeout(function(){
+      globe.addMarker(49.25, -123.1, "Vancouver");
+      globe.addMarker(35.6895, 129.69171, "Tokyo", true);
+  }, 2000);
 
+  function animate(){
+    globe.tick();
+    requestAnimationFrame(animate);
+  }
+
+  globe.init(animate);
 }
 
 /* web font stuff*/

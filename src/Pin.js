@@ -28,7 +28,8 @@ var Pin = function(lat, lon, text, altitude, scene, smokeProvider, _opts){
         font: "Inconsolata",
         showLabel: (text.length > 0),
         showTop: (text.length > 0),
-        showSmoke: (text.length > 0)
+        showSmoke: (text.length > 0),
+        id: null
     }
 
     var lineMaterial,
@@ -90,6 +91,7 @@ var Pin = function(lat, lon, text, altitude, scene, smokeProvider, _opts){
        fog: true
     });
 
+
    this.labelSprite = new THREE.Sprite(labelMaterial);
    this.labelSprite.position = {x: point.x*altitude*1.1, y: point.y*altitude + (point.y < 0 ? -15 : 30), z: point.z*altitude*1.1};
    this.labelSprite.scale.set(labelCanvas.width, labelCanvas.height);
@@ -140,6 +142,13 @@ var Pin = function(lat, lon, text, altitude, scene, smokeProvider, _opts){
        _this.lineGeometry.vertices[1].z = this.z;
        _this.lineGeometry.verticesNeedUpdate = true;
    }).start();
+
+   /* add in ids for later reference */
+   if(this.opts.id !== null && this.opts.id !== undefined){
+       this.labelSprite.name = this.opts.id;
+       this.line.name = this.opts.id;
+       this.topSprite.name = this.opts.id;
+   }
 
     /* add to scene */
 

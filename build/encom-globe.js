@@ -44156,7 +44156,7 @@ var addInitialData = function(){
         return;
     }
     while(this.data.length > 0 && this.firstRunTime + (next = this.data.pop()).when < Date.now()){
-        this.addPin(next.lat, next.lng, next.label);
+        this.addPin(next.lat, next.lng, next.label, next.id);
     }
 
     if(this.firstRunTime + next.when >= Date.now()){
@@ -44384,32 +44384,68 @@ var createIntroLines = function(){
 };
 
 var createMouseBehaviors = function(globe){
-  var mouseDown = false,
-      mousePos = 0,
-      lastTime = Date.now(),
-      mouseTimeout;
+    var mouseDown = false,
+    mousePos = 0,
+    lastTime = Date.now(),
+    movedSinceMouseDown = false,
+    mouseTimeout,
+    mouseVector = new THREE.Vector3(0,0,0),
+    projector = new THREE.Projector();
 
-  globe.domElement.onmousedown = function(e){ mouseDown = true; mousePos = e.clientX; lastTime = Date.now();};
-  globe.domElement.onmouseup = function(e){ mouseDown = false; globe.resetRotationSpeed()}; 
-  globe.domElement.onmouseleave = function(e){ mouseDown = false; globe.resetRotationSpeed();}; 
 
-  var onmousemove = function(e, secondCall){
-    var diff = Date.now() - lastTime;
-    if(mouseDown && diff){
+    globe.domElement.onmousedown = function(e){ mouseDown = true; mousePos = e.clientX; lastTime = Date.now(); movedSinceMouseDown=false;};
+    globe.domElement.onmouseup = function(e){ mouseDown = false; globe.resetRotationSpeed()}; 
+    globe.domElement.onmouseleave = function(e){ mouseDown = false; globe.resetRotationSpeed();}; 
 
-      globe.setRotationSpeed(((e.clientX-mousePos)/globe.width) / (diff/1000));
+    var onmousemove = function(e, secondCall){
 
-      lastTime = Date.now();
-      mousePos = e.clientX;
-      clearTimeout(mouseTimeout);
-      if(!secondCall){
-        mouseTimeout = setTimeout(function(){onmousemove(e, true)},100);
-      }
+        mouseVector.x = 2 * (e.clientX / globe.width) - 1;
+        mouseVector.y = 1 - 2 *(e.clientY / globe.height);
+
+        var diff = Date.now() - lastTime;
+        if(mouseDown && diff){
+            movedSinceMouseDown = true;
+
+            globe.setRotationSpeed(((e.clientX-mousePos)/globe.width) / (diff/1000));
+
+            lastTime = Date.now();
+            mousePos = e.clientX;
+            clearTimeout(mouseTimeout);
+            if(!secondCall){
+                mouseTimeout = setTimeout(function(){onmousemove(e, true)},100);
+            }
+        }
+    };
+
+    var onclick = function (e) {
+        if(!movedSinceMouseDown){
+            var raycaster = projector.pickingRay( mouseVector.clone(), globe.camera );
+            var intersects = raycaster.intersectObjects(globe.scene.children);
+            var minDistance = globe.cameraDistance * 1.1;
+            var closestObjectId = null;
+
+            for(var i = 0; i<intersects.length; i++){
+                objName = intersects[i].object.name;
+                if(objName !== null && objName !== undefined && (typeof objName !== 'string' || objName.length > 0)){
+                    var objectDistance = globe.camera.position.distanceTo(intersects[i].object.position);
+
+                    if(objectDistance < minDistance){
+                        minDistance = objectDistance;
+                        closestObjectId = objName;
+                    }
+                }
+            }
+
+            if(closestObjectId != null && globe.clickHandler){
+                globe.clickHandler(closestObjectId);
+            }
+        }
     }
-  };
 
-  globe.domElement.onmousemove = onmousemove;
-}
+    globe.domElement.onmousemove = onmousemove;
+    globe.domElement.onclick = onclick;
+
+};
 
 
 /* globe constructor */
@@ -44531,7 +44567,7 @@ Globe.prototype.destroy = function(callback){
 
 };
 
-Globe.prototype.addPin = function(lat, lon, text){
+Globe.prototype.addPin = function(lat, lon, text, id){
 
     lat = parseFloat(lat);
     lon = parseFloat(lon);
@@ -44539,7 +44575,8 @@ Globe.prototype.addPin = function(lat, lon, text){
     var opts = {
         lineColor: this.pinColor,
         topColor: this.pinColor,
-        font: this.font
+        font: this.font,
+        id: id
     }
 
     var altitude = 1.2;
@@ -44810,6 +44847,11 @@ Globe.prototype.tick = function(){
     this.camera.lookAt( this.scene.position );
 
     this.renderer.render( this.scene, this.camera );
+
+}
+
+Globe.prototype.setClickHandler = function(clickHandler){
+    this.clickHandler = clickHandler;
 }
 
 module.exports = Globe;
@@ -45115,7 +45157,8 @@ var Pin = function(lat, lon, text, altitude, scene, smokeProvider, _opts){
         font: "Inconsolata",
         showLabel: (text.length > 0),
         showTop: (text.length > 0),
-        showSmoke: (text.length > 0)
+        showSmoke: (text.length > 0),
+        id: null
     }
 
     var lineMaterial,
@@ -45177,6 +45220,7 @@ var Pin = function(lat, lon, text, altitude, scene, smokeProvider, _opts){
        fog: true
     });
 
+
    this.labelSprite = new THREE.Sprite(labelMaterial);
    this.labelSprite.position = {x: point.x*altitude*1.1, y: point.y*altitude + (point.y < 0 ? -15 : 30), z: point.z*altitude*1.1};
    this.labelSprite.scale.set(labelCanvas.width, labelCanvas.height);
@@ -45227,6 +45271,13 @@ var Pin = function(lat, lon, text, altitude, scene, smokeProvider, _opts){
        _this.lineGeometry.vertices[1].z = this.z;
        _this.lineGeometry.verticesNeedUpdate = true;
    }).start();
+
+   /* add in ids for later reference */
+   if(this.opts.id !== null && this.opts.id !== undefined){
+       this.labelSprite.name = this.opts.id;
+       this.line.name = this.opts.id;
+       this.topSprite.name = this.opts.id;
+   }
 
     /* add to scene */
 
