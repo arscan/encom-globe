@@ -24,8 +24,6 @@ var latLon2d = function(lat,lon){
     return {x: lat+90, y:lon + 180, rad: rad};
 };
 
-
-
 var addInitialData = function(){
     if(this.data.length == 0){
         return;
@@ -258,6 +256,35 @@ var createIntroLines = function(){
     this.scene.add(this.introLines);
 };
 
+var createMouseBehaviors = function(globe){
+  var mouseDown = false,
+      mousePos = 0,
+      lastTime = Date.now(),
+      mouseTimeout;
+
+  globe.domElement.onmousedown = function(e){ mouseDown = true; mousePos = e.clientX; lastTime = Date.now();};
+  globe.domElement.onmouseup = function(e){ mouseDown = false; globe.resetRotationSpeed()}; 
+  globe.domElement.onmouseleave = function(e){ mouseDown = false; globe.resetRotationSpeed();}; 
+
+  var onmousemove = function(e, secondCall){
+    var diff = Date.now() - lastTime;
+    if(mouseDown && diff){
+
+      globe.setRotationSpeed(((e.clientX-mousePos)/globe.width) / (diff/1000));
+
+      lastTime = Date.now();
+      mousePos = e.clientX;
+      clearTimeout(mouseTimeout);
+      if(!secondCall){
+        mouseTimeout = setTimeout(function(){onmousemove(e, true)},100);
+      }
+    }
+  };
+
+  globe.domElement.onmousemove = onmousemove;
+}
+
+
 /* globe constructor */
 
 function Globe(width, height, opts){
@@ -286,32 +313,33 @@ function Globe(width, height, opts){
         markerColor: "#ffcc00",
         pinColor: "#00eeee",
         satelliteColor: "#ff0000",
-        blankPercentage: 0,
-        thinAntarctica: .01, // only show 1% of antartica... you can't really see it on the map anyhow
-        mapUrl: "resources/equirectangle_projection.png",
         introLinesAltitude: 1.10,
         introLinesDuration: 2000,
         introLinesColor: "#8FD8D8",
         introLinesCount: 60,
         scale: 1.0,
         dayLength: 28000,
-        pointsPerDegree: 1.1,
-        pointSize: .6,
-        pointsVariance: .2,
         maxPins: 500,
         maxMarkers: 4,
         data: [],
         tiles: [],
-        viewAngle: 0
+        viewAngle: .1,
+        cameraAngle: Math.PI
     };
 
     for(var i in defaults){
         if(!this[i]){
             this[i] = defaults[i];
-            if(opts[i]){
+            if(opts[i] !== undefined){
                 this[i] = opts[i];
             }
         }
+    }
+
+    if(this.dayLength === 0){
+      this.rotationSpeed = 0;
+    } else {
+      this.rotationSpeed = 1000 * 1/this.dayLength;
     }
 
     this.setScale(this.scale);
@@ -330,6 +358,9 @@ function Globe(width, height, opts){
         this.data[i].when = this.introLinesDuration*((180+this.data[i].lng)/360.0) + 500; 
     }
 
+    this.defaultRotationSpeed = this.rotationSpeed;
+
+    createMouseBehaviors(this);
 
 }
 
@@ -340,8 +371,6 @@ Globe.prototype.init = function(cb){
     // create the camera
     this.camera = new THREE.PerspectiveCamera( 50, this.width / this.height, 1, this.cameraDistance + 300 );
     this.camera.position.z = this.cameraDistance;
-
-    this.cameraAngle=(Math.PI);
 
     // create the scene
     this.scene = new THREE.Scene();
@@ -573,6 +602,14 @@ Globe.prototype.setScale = function(_scale){
     }
 };
 
+Globe.prototype.setRotationSpeed = function(rotationSpeed){
+  this.rotationSpeed = rotationSpeed;
+}
+
+Globe.prototype.resetRotationSpeed = function(){
+  this.rotationSpeed = this.defaultRotationSpeed;
+}
+
 Globe.prototype.tick = function(){
 
     if(!this.camera){
@@ -597,7 +634,7 @@ Globe.prototype.tick = function(){
 
     var renderTime = new Date() - this.lastRenderDate;
     this.lastRenderDate = new Date();
-    var rotateCameraBy = (2 * Math.PI)/(this.dayLength/renderTime);
+    var rotateCameraBy = this.rotationSpeed * renderTime/1000 * 2 * Math.PI;
 
     this.cameraAngle += rotateCameraBy;
 
@@ -644,8 +681,8 @@ Globe.prototype.tick = function(){
     this.smokeProvider.tick(this.totalRunTime);
 
     this.camera.lookAt( this.scene.position );
-    this.renderer.render( this.scene, this.camera );
 
+    this.renderer.render( this.scene, this.camera );
 }
 
 module.exports = Globe;
