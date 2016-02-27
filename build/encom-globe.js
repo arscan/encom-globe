@@ -44147,7 +44147,7 @@ var latLonToXYZ = function(width, height, lat,lon){
 
 var latLon2d = function(lat,lon){
 
-    var rad = 2 + (Math.abs(lat)/90) * 15;
+    var rad = 2 + (Math.abs(lat)/90) * 5;
     return {x: lat+90, y:lon + 180, rad: rad};
 };
 
