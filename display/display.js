@@ -28,7 +28,8 @@ function createGlobe(){
   //   data: [],
   //   tiles: [],
   //   viewAngle: .1, // North-South camera angle; between -Math.PI and Math.PI
-  //   cameraAngle: Math.PI // East-West camera angle; between -Math.PI and Math.PI
+  //   cameraAngle: Math.PI, // East-West camera angle; between -Math.PI and Math.PI
+  //   viewAngleResetTime: 30000 // time in MS to wait before reseting viewAngle back to default
   // };
 
   $("#globe").append(globe.domElement);

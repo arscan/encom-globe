@@ -44164,7 +44164,6 @@ var addInitialData = function(){
     }
 };
 
-
 var createParticles = function(){
 
     if(this.hexGrid){
@@ -44385,17 +44384,36 @@ var createIntroLines = function(){
 
 var createMouseBehaviors = function(globe){
     var mouseDown = false,
-    mousePos = 0,
+    mousePos = {x: 0, y: 0},
     lastTime = Date.now(),
-    movedSinceMouseDown = false,
+    distanceSinceMouseDown = 0,
     mouseTimeout,
+    verticalTimeout,
     mouseVector = new THREE.Vector3(0,0,0),
     projector = new THREE.Projector();
 
+    var onmouseup = function(){
+        mouseDown = false;
+        globe.resetRotationSpeed();
+        clearTimeout(verticalTimeout);
+        verticalTimeout = setTimeout(function(){
+            new TWEEN.Tween( {viewAngle: globe.viewAngle})
+            .easing( TWEEN.Easing.Quadratic.InOut)
+            .to( {viewAngle: globe.defaultViewAngle}, 1000 )
+            .onUpdate(function(){
+                globe.viewAngle = this.viewAngle;
+            }).start();
 
-    globe.domElement.onmousedown = function(e){ mouseDown = true; mousePos = e.clientX; lastTime = Date.now(); movedSinceMouseDown=false;};
-    globe.domElement.onmouseup = function(e){ mouseDown = false; globe.resetRotationSpeed()}; 
-    globe.domElement.onmouseleave = function(e){ mouseDown = false; globe.resetRotationSpeed();}; 
+        },globe.viewAngleResetTime);
+    };
+    
+    var onmousedown = function(e){ 
+        clearTimeout(verticalTimeout);
+        mouseDown = true; 
+        mousePos = {x: e.clientX, y: e.clientY}; 
+        lastTime = Date.now(); 
+        movedSinceMouseDown=0;
+    };
 
     var onmousemove = function(e, secondCall){
 
@@ -44404,12 +44422,13 @@ var createMouseBehaviors = function(globe){
 
         var diff = Date.now() - lastTime;
         if(mouseDown && diff){
-            movedSinceMouseDown = true;
+            movedSinceMouseDown += Math.abs(e.clientX-mousePos.x) + Math.abs(e.clientY-mousePos.y);
 
-            globe.setRotationSpeed(((e.clientX-mousePos)/globe.width) / (diff/1000));
+            globe.setRotationSpeed(((e.clientX-mousePos.x)/globe.width) / (diff/1000));
+            globe.setVerticalRotationSpeed(((e.clientY-mousePos.y)/globe.height / 2) / (diff/1000));
 
             lastTime = Date.now();
-            mousePos = e.clientX;
+            mousePos = {x: e.clientX, y: e.clientY};
             clearTimeout(mouseTimeout);
             if(!secondCall){
                 mouseTimeout = setTimeout(function(){onmousemove(e, true)},100);
@@ -44418,7 +44437,7 @@ var createMouseBehaviors = function(globe){
     };
 
     var onclick = function (e) {
-        if(!movedSinceMouseDown){
+        if(movedSinceMouseDown < 50){
             var raycaster = projector.pickingRay( mouseVector.clone(), globe.camera );
             var intersects = raycaster.intersectObjects(globe.scene.children);
             var minDistance = globe.cameraDistance * 1.1;
@@ -44442,6 +44461,9 @@ var createMouseBehaviors = function(globe){
         }
     }
 
+    globe.domElement.onmousedown = onmousedown;
+    globe.domElement.onmouseup = onmouseup;
+    globe.domElement.onmouseleave = onmouseup;
     globe.domElement.onmousemove = onmousemove;
     globe.domElement.onclick = onclick;
 
@@ -44487,7 +44509,8 @@ function Globe(width, height, opts){
         data: [],
         tiles: [],
         viewAngle: .1,
-        cameraAngle: Math.PI
+        cameraAngle: Math.PI,
+        viewAngleResetTime: 30000
     };
 
     for(var i in defaults){
@@ -44504,6 +44527,8 @@ function Globe(width, height, opts){
     } else {
       this.rotationSpeed = 1000 * 1/this.dayLength;
     }
+
+    this.verticalRotationSpeed = 0;
 
     this.setScale(this.scale);
 
@@ -44522,6 +44547,7 @@ function Globe(width, height, opts){
     }
 
     this.defaultRotationSpeed = this.rotationSpeed;
+    this.defaultViewAngle = this.viewAngle;
 
     createMouseBehaviors(this);
 
@@ -44770,8 +44796,13 @@ Globe.prototype.setRotationSpeed = function(rotationSpeed){
   this.rotationSpeed = rotationSpeed;
 }
 
+Globe.prototype.setVerticalRotationSpeed = function(rotationSpeed){
+  this.verticalRotationSpeed = rotationSpeed;
+}
+
 Globe.prototype.resetRotationSpeed = function(){
   this.rotationSpeed = this.defaultRotationSpeed;
+  this.verticalRotationSpeed = 0;
 }
 
 Globe.prototype.tick = function(){
@@ -44799,8 +44830,12 @@ Globe.prototype.tick = function(){
     var renderTime = new Date() - this.lastRenderDate;
     this.lastRenderDate = new Date();
     var rotateCameraBy = this.rotationSpeed * renderTime/1000 * 2 * Math.PI;
+    var rotateVerticalCameraBy = this.verticalRotationSpeed * renderTime/1000 * 2 * Math.PI;
 
     this.cameraAngle += rotateCameraBy;
+    this.viewAngle += rotateVerticalCameraBy;
+    this.viewAngle = Math.min(Math.PI/2, this.viewAngle);
+    this.viewAngle = Math.max(-Math.PI/2, this.viewAngle);
 
     if(!this.active){
         this.cameraDistance += (1000 * renderTime/1000);
