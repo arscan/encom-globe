@@ -92,7 +92,7 @@
             }
 
             function start(){
-                
+
                 if(globeCount == 1){ // only do this for the first globe that's created. very messy
                     $("#apply-button").click(function(e){
                         globe.destroy(function(){
@@ -130,7 +130,7 @@
                         if(!globe || !$("#globe-dd:checked").length){
                             return;
                         }
-                        
+
                         var lat = Math.random() * 180 - 90,
                            lon = Math.random() * 360 - 180,
                            name = "Test " + Math.floor(Math.random() * 100);
@@ -139,7 +139,7 @@
 
                     }, 5000);
                 }
-                
+
                 /* add 6 satellites in random locations */
 
                 if($("#globe-dd:checked").length){
@@ -154,8 +154,8 @@
                         for(var i = 0; i< 2; i++){
                             for(var j = 0; j< 3; j++){
                                  constellation.push({
-                                    lat: 50 * i - 30 + 15 * Math.random(), 
-                                     lon: 120 * j - 120 + 30 * i, 
+                                    lat: 50 * i - 30 + 15 * Math.random(),
+                                     lon: 120 * j - 120 + 30 * i,
                                      altitude: alt
                                      });
                             }
@@ -236,7 +236,7 @@
                             globe.setBaseColor(color.toHexString());
                         }
                     }
-                }); 
+                });
 
                 $("#pin-color").spectrum({
                     color: "#8FD8D8",
@@ -247,7 +247,7 @@
                             globe.setPinColor(color.toHexString());
                         }
                     }
-                }); 
+                });
 
                 $("#marker-color").spectrum({
                     color: "#ffcc00",
@@ -258,7 +258,7 @@
                             globe.setMarkerColor(color.toHexString());
                         }
                     }
-                }); 
+                });
 
                 $("#satellite-color").spectrum({
                     color: "#ff0000",
@@ -272,7 +272,7 @@
                         }
                     }
 
-                }); 
+                });
 
                 $("[data-slider]")
                 .each(function () {
@@ -400,7 +400,7 @@
         <div id="container">
             <div id="banner">
                 Encom Globe
-                <small>by <a href="http://twitter.com/arscan">@arscan</a></small>
+                <small>forked by <a href="https://github.com/noDojo">noDojo</a></small>
 
             </div>
             <div id="globe">
@@ -492,7 +492,7 @@
 
                     <div id="apply-button" class="button">Reload</div>
 
-                    
+
                 </div>
             </div>
             <div class="header" id="header-top">
@@ -516,4 +516,3 @@
         <!-- endref -->
     </body>
 </html>
-
