@@ -4,7 +4,7 @@
   "description": "encom-globe",
   "main": "src/Globe.js",
   "devDependencies": {
-    "minimist": "0.0.8",
+    "minimist": "1.2.5",
     "grunt": "~0.4.2",
     "grunt-contrib-watch": "~0.5.3",
     "grunt-shell": "~0.6.4",
