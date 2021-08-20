@@ -20,25 +20,22 @@ var latLonToXYZ = function(width, height, lat,lon){
 
 var latLon2d = function(lat,lon){
 
-    var rad = 2 + (Math.abs(lat)/90) * 15;
+    var rad = 2 + (Math.abs(lat)/90) * 5;
     return {x: lat+90, y:lon + 180, rad: rad};
 };
-
-
 
 var addInitialData = function(){
     if(this.data.length == 0){
         return;
     }
     while(this.data.length > 0 && this.firstRunTime + (next = this.data.pop()).when < Date.now()){
-        this.addPin(next.lat, next.lng, next.label);
+        this.addPin(next.lat, next.lng, next.label, next.id);
     }
 
     if(this.firstRunTime + next.when >= Date.now()){
         this.data.push(next);
     }
 };
-
 
 var createParticles = function(){
 
@@ -258,6 +255,94 @@ var createIntroLines = function(){
     this.scene.add(this.introLines);
 };
 
+var createMouseBehaviors = function(globe){
+    var mouseDown = false,
+    mousePos = {x: 0, y: 0},
+    lastTime = Date.now(),
+    distanceSinceMouseDown = 0,
+    mouseTimeout,
+    verticalTimeout,
+    mouseVector = new THREE.Vector3(0,0,0),
+    projector = new THREE.Projector();
+
+    var onmouseup = function(){
+        mouseDown = false;
+        globe.resetRotationSpeed();
+        clearTimeout(verticalTimeout);
+        verticalTimeout = setTimeout(function(){
+            new TWEEN.Tween( {viewAngle: globe.viewAngle})
+            .easing( TWEEN.Easing.Quadratic.InOut)
+            .to( {viewAngle: globe.defaultViewAngle}, 1000 )
+            .onUpdate(function(){
+                globe.viewAngle = this.viewAngle;
+            }).start();
+
+        },globe.viewAngleResetTime);
+    };
+    
+    var onmousedown = function(e){ 
+        clearTimeout(verticalTimeout);
+        mouseDown = true; 
+        mousePos = {x: e.clientX, y: e.clientY}; 
+        lastTime = Date.now(); 
+        movedSinceMouseDown=0;
+    };
+
+    var onmousemove = function(e, secondCall){
+
+        mouseVector.x = 2 * (e.clientX / globe.width) - 1;
+        mouseVector.y = 1 - 2 *(e.clientY / globe.height);
+
+        var diff = Date.now() - lastTime;
+        if(mouseDown && diff){
+            movedSinceMouseDown += Math.abs(e.clientX-mousePos.x) + Math.abs(e.clientY-mousePos.y);
+
+            globe.setRotationSpeed(((e.clientX-mousePos.x)/globe.width) / (diff/1000));
+            globe.setVerticalRotationSpeed(((e.clientY-mousePos.y)/globe.height / 2) / (diff/1000));
+
+            lastTime = Date.now();
+            mousePos = {x: e.clientX, y: e.clientY};
+            clearTimeout(mouseTimeout);
+            if(!secondCall){
+                mouseTimeout = setTimeout(function(){onmousemove(e, true)},100);
+            }
+        }
+    };
+
+    var onclick = function (e) {
+        if(movedSinceMouseDown < 50){
+            var raycaster = projector.pickingRay( mouseVector.clone(), globe.camera );
+            var intersects = raycaster.intersectObjects(globe.scene.children);
+            var minDistance = globe.cameraDistance * 1.1;
+            var closestObjectId = null;
+
+            for(var i = 0; i<intersects.length; i++){
+                objName = intersects[i].object.name;
+                if(objName !== null && objName !== undefined && (typeof objName !== 'string' || objName.length > 0)){
+                    var objectDistance = globe.camera.position.distanceTo(intersects[i].object.position);
+
+                    if(objectDistance < minDistance){
+                        minDistance = objectDistance;
+                        closestObjectId = objName;
+                    }
+                }
+            }
+
+            if(closestObjectId != null && globe.clickHandler){
+                globe.clickHandler(closestObjectId);
+            }
+        }
+    }
+
+    globe.domElement.onmousedown = onmousedown;
+    globe.domElement.onmouseup = onmouseup;
+    globe.domElement.onmouseleave = onmouseup;
+    globe.domElement.onmousemove = onmousemove;
+    globe.domElement.onclick = onclick;
+
+};
+
+
 /* globe constructor */
 
 function Globe(width, height, opts){
@@ -286,33 +371,37 @@ function Globe(width, height, opts){
         markerColor: "#ffcc00",
         pinColor: "#00eeee",
         satelliteColor: "#ff0000",
-        blankPercentage: 0,
-        thinAntarctica: .01, // only show 1% of antartica... you can't really see it on the map anyhow
-        mapUrl: "resources/equirectangle_projection.png",
         introLinesAltitude: 1.10,
         introLinesDuration: 2000,
         introLinesColor: "#8FD8D8",
         introLinesCount: 60,
         scale: 1.0,
         dayLength: 28000,
-        pointsPerDegree: 1.1,
-        pointSize: .6,
-        pointsVariance: .2,
         maxPins: 500,
         maxMarkers: 4,
         data: [],
         tiles: [],
-        viewAngle: 0
+        viewAngle: .1,
+        cameraAngle: Math.PI,
+        viewAngleResetTime: 30000
     };
 
     for(var i in defaults){
         if(!this[i]){
             this[i] = defaults[i];
-            if(opts[i]){
+            if(opts[i] !== undefined){
                 this[i] = opts[i];
             }
         }
     }
+
+    if(this.dayLength === 0){
+      this.rotationSpeed = 0;
+    } else {
+      this.rotationSpeed = 1000 * 1/this.dayLength;
+    }
+
+    this.verticalRotationSpeed = 0;
 
     this.setScale(this.scale);
 
@@ -330,6 +419,10 @@ function Globe(width, height, opts){
         this.data[i].when = this.introLinesDuration*((180+this.data[i].lng)/360.0) + 500; 
     }
 
+    this.defaultRotationSpeed = this.rotationSpeed;
+    this.defaultViewAngle = this.viewAngle;
+
+    createMouseBehaviors(this);
 
 }
 
@@ -340,8 +433,6 @@ Globe.prototype.init = function(cb){
     // create the camera
     this.camera = new THREE.PerspectiveCamera( 50, this.width / this.height, 1, this.cameraDistance + 300 );
     this.camera.position.z = this.cameraDistance;
-
-    this.cameraAngle=(Math.PI);
 
     // create the scene
     this.scene = new THREE.Scene();
@@ -375,7 +466,7 @@ Globe.prototype.destroy = function(callback){
 
 };
 
-Globe.prototype.addPin = function(lat, lon, text){
+Globe.prototype.addPin = function(lat, lon, text, id){
 
     lat = parseFloat(lat);
     lon = parseFloat(lon);
@@ -383,7 +474,8 @@ Globe.prototype.addPin = function(lat, lon, text){
     var opts = {
         lineColor: this.pinColor,
         topColor: this.pinColor,
-        font: this.font
+        font: this.font,
+        id: id
     }
 
     var altitude = 1.2;
@@ -573,6 +665,19 @@ Globe.prototype.setScale = function(_scale){
     }
 };
 
+Globe.prototype.setRotationSpeed = function(rotationSpeed){
+  this.rotationSpeed = rotationSpeed;
+}
+
+Globe.prototype.setVerticalRotationSpeed = function(rotationSpeed){
+  this.verticalRotationSpeed = rotationSpeed;
+}
+
+Globe.prototype.resetRotationSpeed = function(){
+  this.rotationSpeed = this.defaultRotationSpeed;
+  this.verticalRotationSpeed = 0;
+}
+
 Globe.prototype.tick = function(){
 
     if(!this.camera){
@@ -597,9 +702,13 @@ Globe.prototype.tick = function(){
 
     var renderTime = new Date() - this.lastRenderDate;
     this.lastRenderDate = new Date();
-    var rotateCameraBy = (2 * Math.PI)/(this.dayLength/renderTime);
+    var rotateCameraBy = this.rotationSpeed * renderTime/1000 * 2 * Math.PI;
+    var rotateVerticalCameraBy = this.verticalRotationSpeed * renderTime/1000 * 2 * Math.PI;
 
     this.cameraAngle += rotateCameraBy;
+    this.viewAngle += rotateVerticalCameraBy;
+    this.viewAngle = Math.min(Math.PI/2, this.viewAngle);
+    this.viewAngle = Math.max(-Math.PI/2, this.viewAngle);
 
     if(!this.active){
         this.cameraDistance += (1000 * renderTime/1000);
@@ -644,8 +753,13 @@ Globe.prototype.tick = function(){
     this.smokeProvider.tick(this.totalRunTime);
 
     this.camera.lookAt( this.scene.position );
+
     this.renderer.render( this.scene, this.camera );
 
+}
+
+Globe.prototype.setClickHandler = function(clickHandler){
+    this.clickHandler = clickHandler;
 }
 
 module.exports = Globe;
