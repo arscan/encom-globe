@@ -1,19 +1,9 @@
 const THREE = require('three')
 
 // based on http://stemkoski.github.io/Three.js/Texture-Animation.html
-const TextureAnimator = function (
-  texture,
-  tilesVert,
-  tilesHoriz,
-  numTiles,
-  tileDispDuration,
-  repeatAtTile
-) {
+module.exports = function(texture, tilesVert, tilesHoriz, numTiles, tileDispDuration, repeatAtTile) {
   // note: texture passed by reference, will be updated by the update function.
-
-  if (repeatAtTile == undefined) {
-    this.repeatAtTile = -1
-  }
+  if (repeatAtTile == undefined) this.repeatAtTile = -1
 
   this.shutDownFlag = this.repeatAtTile < 0
   this.done = false
@@ -48,20 +38,17 @@ const TextureAnimator = function (
       } else {
         this.currentDisplayTime -= this.tileDisplayDuration
         this.currentTile++
-        if (this.currentTile == numTiles && !this.shutDownFlag)
-          this.currentTile = repeatAtTile
-        let currentColumn = this.currentTile % this.tilesHorizontal
+        if (this.currentTile == numTiles && !this.shutDownFlag) this.currentTile = repeatAtTile
+        const currentColumn = this.currentTile % this.tilesHorizontal
         texture.offset.x = currentColumn / this.tilesHorizontal
-        let currentRow = Math.floor(this.currentTile / this.tilesHorizontal)
-        texture.offset.y =
-          1 - currentRow / this.tilesVertical - 1 / this.tilesVertical
+        const currentRow = Math.floor(this.currentTile / this.tilesHorizontal)
+        texture.offset.y = 1 - currentRow / this.tilesVertical - 1 / this.tilesVertical
       }
     }
   }
+  
   this.shutDown = function (cb) {
     _this.shutDownFlag = true
     _this.shutDownCb = cb
   }
 }
-
-module.exports = TextureAnimator

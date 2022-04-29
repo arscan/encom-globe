@@ -18,7 +18,7 @@
   <body>
     <script src="./include/data.js"></script>
     <script src="./include/grid.js"></script>
-    <script src="./build/encom-globe.min.js"></script>
+    <script src="./dist/encom-globe.js"></script>
     <script>
       /* 创建地球 */
       const createEarth = (args) => {
@@ -76,7 +76,6 @@
             let lon = Math.random() * 360 - 180
             let name = "Test " + Math.floor(Math.random() * 100)
             this.earth.addPin(lat, lon, name)
-            console.log(this.earth.pins)
           }, 6000)
         })
       }

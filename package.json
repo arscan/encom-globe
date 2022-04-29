@@ -12,8 +12,7 @@
   "scripts": {
     "build": "grunt build",
     "buildgrid": "bin/buildgrid -r 500 -o grid.js -m resources/equirectangle_projection.png",
-    "lint": "prettier --write src '*.js' '*.json'",
-    "sort": "sort-package-json"
+    "lint": "prettier --write src '*.js' '*.json'"
   },
   "dependencies": {
     "@tweenjs/tween.js": "^18.6.4",
@@ -33,7 +32,6 @@
     "grunt-contrib-watch": "^1.1.0",
     "minimist": "^1.2.5",
     "pngjs": "^6.0.0",
-    "prettier": "^2.4.1",
-    "sort-package-json": "^1.51.0"
+    "prettier": "^2.4.1"
   }
 }

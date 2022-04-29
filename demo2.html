@@ -18,12 +18,12 @@
   <body>
     <script src="./include/grid.js"></script>
     <script src="./include/data.js"></script>
-    <script src="./build/encom-globe.min.js"></script>
+    <script src="./dist/encom-globe.min.js"></script>
     <script>
       function createGlobe() {
-        window.globe = new ENCOM.Globe(window.innerWidth, window.innerHeight, {
+        globe = new ENCOM.Globe(window.innerWidth, window.innerHeight, {
           font: 'Inconsolata',
-          tiles: data.tiles,
+          tiles: grid.tiles,
           baseColor: '#ffcc00',
           dayLength: 1000 * 28, // [1, 120]
           scale: 1,
