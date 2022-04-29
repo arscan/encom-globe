@@ -1,6 +1,5 @@
 const TWEEN = require('tween.js')
 const THREE = require('three')
-const Hexasphere = require('hexasphere.js')
 const Quadtree2 = require('quadtree2')
 const Vec2 = require('vec2')
 const Pin = require('./Pin')
