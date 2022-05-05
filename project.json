@@ -1,0 +1,87 @@
+{
+	"file" : "index.html",
+	"general" : 
+	{
+		"properties" : 
+		{
+			"main_color" : 
+			{
+				"index" : 0,
+				"order" : 100,
+				"text" : "主色调（重启生效）",
+				"type" : "color",
+				"value" : "0 1 1"
+			},
+			"offsetx" : 
+			{
+				"fraction" : false,
+				"index" : 2,
+				"max" : 100,
+				"min" : -100,
+				"order" : 102,
+				"text" : "左右位置",
+				"type" : "slider",
+				"value" : 0
+			},
+			"offsety" : 
+			{
+				"fraction" : false,
+				"index" : 1,
+				"max" : 100,
+				"min" : -100,
+				"order" : 101,
+				"text" : "上下位置",
+				"type" : "slider",
+				"value" : 0
+			},
+			"scale" : 
+			{
+				"fraction" : true,
+				"index" : 5,
+				"max" : 2,
+				"min" : 1,
+				"order" : 105,
+				"precision" : 2,
+				"step" : 0.1,
+				"text" : "缩放调整（重启生效）",
+				"type" : "slider",
+				"value" : 1
+			},
+			"schemecolor" : 
+			{
+				"order" : 0,
+				"text" : "ui_browse_properties_scheme_color",
+				"type" : "color",
+				"value" : "0 0 0"
+			},
+			"speed" : 
+			{
+				"fraction" : false,
+				"index" : 3,
+				"max" : 120,
+				"min" : 1,
+				"order" : 103,
+				"text" : "旋转速度",
+				"type" : "slider",
+				"value" : 36
+			},
+			"view" : 
+			{
+				"fraction" : true,
+				"index" : 4,
+				"max" : 1.57,
+				"min" : -1.57,
+				"order" : 104,
+				"precision" : 2,
+				"step" : 0.1,
+				"text" : "视角调整",
+				"type" : "slider",
+				"value" : 0
+			}
+		}
+	},
+	"preview" : "preview.jpg",
+	"title" : "全息地球",
+	"type" : "web",
+	"version" : 0
+}
