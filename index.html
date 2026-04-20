@@ -341,11 +341,7 @@
 
                 var docHeight = $(document).height();
 
-                WebFontConfig = {
-                    google: {
-                          families: ['Inconsolata']
-                    },
-                    active: function(){
+                (function startGlobe(){
                         /* don't start the globe until the font has been loaded */
                         $("#options").css({
                             "visibility": "visible",
@@ -376,20 +372,7 @@
                                 createGlobe();
 
                             });
-                    }
-                };
-
-                /* Webgl stuff */
-
-
-                /* web font stuff*/
-                var wf = document.createElement('script');
-                wf.src = ('https:' == document.location.protocol ? 'https' : 'http') +
-                    '://ajax.googleapis.com/ajax/libs/webfont/1.4.7/webfont.js';
-                wf.type = 'text/javascript';
-                wf.async = 'true';
-                var s = document.getElementsByTagName('script')[0];
-                s.parentNode.insertBefore(wf, s);
+                })();
 
             });
 
