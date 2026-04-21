@@ -1,5 +1,5 @@
 var THREE = require('three'),
-    TWEEN = require('tween.js'),
+    TWEEN = require('@tweenjs/tween.js'),
     utils = require('./utils');
 
 var createMarkerTexture = function(markerColor) {
@@ -97,30 +97,29 @@ var Marker = function(lat, lon, text, altitude, previous, scene, _opts){
 
     labelMaterial = new THREE.SpriteMaterial({
         map : labelTexture,
-        useScreenCoordinates: false,
         opacity: 0,
         depthTest: true,
         fog: true
     });
 
     this.labelSprite = new THREE.Sprite(labelMaterial);
-    this.labelSprite.position = {x: point.x * altitude * 1.1, y: point.y*altitude*1.05 + (point.y < 0 ? -15 : 30), z: point.z * altitude * 1.1};
+    this.labelSprite.position.set(point.x * altitude * 1.1, point.y*altitude*1.05 + (point.y < 0 ? -15 : 30), point.z * altitude * 1.1);
     this.labelSprite.scale.set(labelCanvas.width, labelCanvas.height);
 
-    new TWEEN.Tween( {opacity: 0})
+    new TWEEN.Tween( {opacity: 0}, true)
     .to( {opacity: 1}, 500 )
-    .onUpdate(function(){
-        labelMaterial.opacity = this.opacity
+    .onUpdate(function(o){
+        labelMaterial.opacity = o.opacity;
     }).start();
 
 
     var _this = this; //arrghghh
 
-    new TWEEN.Tween({x: 0, y: 0})
+    new TWEEN.Tween({x: 0, y: 0}, true)
     .to({x: 50, y: 50}, 2000)
     .easing( TWEEN.Easing.Elastic.Out )
-    .onUpdate(function(){
-        _this.marker.scale.set(this.x, this.y);
+    .onUpdate(function(o){
+        _this.marker.scale.set(o.x, o.y);
     })
     .delay((this.previous ? _this.opts.drawTime : 0))
     .start();
@@ -134,15 +133,12 @@ var Marker = function(lat, lon, text, altitude, previous, scene, _opts){
           startPoint,
           pointList = [],
           pointList2 = [],
-          nextlat,
-          nextlon,
           currentLat,
           currentLon,
           currentPoint,
-          currentVert,
+          currentPoint2,
           update;
 
-        _this.geometrySpline = new THREE.Geometry();
         materialSpline = new THREE.LineBasicMaterial({
             color: this.opts.lineColor,
             transparent: true,
@@ -150,7 +146,6 @@ var Marker = function(lat, lon, text, altitude, previous, scene, _opts){
             opacity: .5
         });
 
-        _this.geometrySplineDotted = new THREE.Geometry();
         materialSplineDotted = new THREE.LineBasicMaterial({
             color: this.opts.lineColor,
             linewidth: 1,
@@ -164,11 +159,11 @@ var Marker = function(lat, lon, text, altitude, previous, scene, _opts){
         pointList = [];
         pointList2 = [];
 
-        for(var j = 0; j< _this.opts.lineSegments + 1; j++){
-            // var nextlat = ((90 + lat1 + j*1)%180)-90;
-            // var nextlon = ((180 + lng1 + j*1)%360)-180;
+        var vertCount = _this.opts.lineSegments + 1;
+        var splineArr       = new Float32Array(vertCount * 3);
+        var splineDottedArr = new Float32Array(vertCount * 3);
 
-
+        for(var j = 0; j< vertCount; j++){
             var nextlat = (((90 + previous.lat + j*latdist)%180)-90) * (.5 + Math.cos(j*(5*Math.PI/2)/_this.opts.lineSegments)/2) + (j*lat/_this.opts.lineSegments/2);
             var nextlon = ((180 + previous.lon + j*londist)%360)-180;
             pointList.push({lat: nextlat, lon: nextlon, index: j});
@@ -177,53 +172,53 @@ var Marker = function(lat, lon, text, altitude, previous, scene, _opts){
             } else {
                 pointList2.push({lat: nextlat+1, lon: nextlon, index: j});
             }
-            // var thisPoint = mapPoint(nextlat, nextlon);
-            sPoint = new THREE.Vector3(startPoint.x*1.2, startPoint.y*1.2, startPoint.z*1.2);
-            sPoint2 = new THREE.Vector3(startPoint.x*1.2, startPoint.y*1.2, startPoint.z*1.2);
-            // sPoint = new THREE.Vector3(thisPoint.x*1.2, thisPoint.y*1.2, thisPoint.z*1.2);
 
-            sPoint.globe_index = j;
-            sPoint2.globe_index = j;
-
-            _this.geometrySpline.vertices.push(sPoint);  
-            _this.geometrySplineDotted.vertices.push(sPoint2);  
+            splineArr[j*3]   = startPoint.x*1.2;
+            splineArr[j*3+1] = startPoint.y*1.2;
+            splineArr[j*3+2] = startPoint.z*1.2;
+            splineDottedArr[j*3]   = startPoint.x*1.2;
+            splineDottedArr[j*3+1] = startPoint.y*1.2;
+            splineDottedArr[j*3+2] = startPoint.z*1.2;
         }
 
+        _this.geometrySpline = new THREE.BufferGeometry();
+        _this._splinePosAttr = new THREE.BufferAttribute(splineArr, 3);
+        _this.geometrySpline.setAttribute('position', _this._splinePosAttr);
+
+        _this.geometrySplineDotted = new THREE.BufferGeometry();
+        _this._splineDottedPosAttr = new THREE.BufferAttribute(splineDottedArr, 3);
+        _this.geometrySplineDotted.setAttribute('position', _this._splineDottedPosAttr);
 
         currentLat = previous.lat;
         currentLon = previous.lon;
-        currentPoint;
-        currentVert;
 
         update = function(){
             var nextSpot = pointList.shift();
             var nextSpot2 = pointList2.shift();
 
-            for(var x = 0; x< _this.geometrySpline.vertices.length; x++){
-
-                currentVert = _this.geometrySpline.vertices[x];
+            for(var x = 0; x < vertCount; x++){
                 currentPoint = utils.mapPoint(nextSpot.lat, nextSpot.lon);
-
-                currentVert2 = _this.geometrySplineDotted.vertices[x];
                 currentPoint2 = utils.mapPoint(nextSpot2.lat, nextSpot2.lon);
 
                 if(x >= nextSpot.index){
-                    currentVert.set(currentPoint.x*1.2, currentPoint.y*1.2, currentPoint.z*1.2);
-                    currentVert2.set(currentPoint2.x*1.19, currentPoint2.y*1.19, currentPoint2.z*1.19);
+                    _this._splinePosAttr.setXYZ(x, currentPoint.x*1.2, currentPoint.y*1.2, currentPoint.z*1.2);
+                    _this._splineDottedPosAttr.setXYZ(x, currentPoint2.x*1.19, currentPoint2.y*1.19, currentPoint2.z*1.19);
                 }
-                _this.geometrySpline.verticesNeedUpdate = true;
-                _this.geometrySplineDotted.verticesNeedUpdate = true;
             }
+            _this._splinePosAttr.needsUpdate = true;
+            _this._splineDottedPosAttr.needsUpdate = true;
+
             if(pointList.length > 0){
                 setTimeout(update,_this.opts.drawTime/_this.opts.lineSegments);
             }
-
         };
 
         update();
 
-        this.scene.add(new THREE.Line(_this.geometrySpline, materialSpline));
-        this.scene.add(new THREE.Line(_this.geometrySplineDotted, materialSplineDotted, THREE.LinePieces));
+        _this.lineSpline = new THREE.Line(_this.geometrySpline, materialSpline);
+        _this.lineDotted = new THREE.Line(_this.geometrySplineDotted, materialSplineDotted);
+        this.scene.add(_this.lineSpline);
+        this.scene.add(_this.lineDotted);
     }
 
     this.scene.add(this.marker);
@@ -236,28 +231,33 @@ Marker.prototype.remove = function(){
     var _this = this;
 
     var update = function(ref){
-
-        for(var i = 0; i< x; i++){
-            ref.geometrySpline.vertices[i].set(ref.geometrySpline.vertices[i+1]);
-            ref.geometrySplineDotted.vertices[i].set(ref.geometrySplineDotted.vertices[i+1]);
-            ref.geometrySpline.verticesNeedUpdate = true;
-            ref.geometrySplineDotted.verticesNeedUpdate = true;
+        for(var i = 0; i < x; i++){
+            ref._splinePosAttr.setXYZ(i,
+                ref._splinePosAttr.getX(i+1),
+                ref._splinePosAttr.getY(i+1),
+                ref._splinePosAttr.getZ(i+1));
+            ref._splineDottedPosAttr.setXYZ(i,
+                ref._splineDottedPosAttr.getX(i+1),
+                ref._splineDottedPosAttr.getY(i+1),
+                ref._splineDottedPosAttr.getZ(i+1));
+            ref._splinePosAttr.needsUpdate = true;
+            ref._splineDottedPosAttr.needsUpdate = true;
         }
 
         x++;
-        if(x < ref.geometrySpline.vertices.length){
-            setTimeout(function(){update(ref)}, _this.opts.drawTime/_this.opts.lineSegments)
+        if(x < ref._splinePosAttr.count){
+            setTimeout(function(){ update(ref); }, _this.opts.drawTime/_this.opts.lineSegments);
         } else {
-            _this.scene.remove(ref.geometrySpline);
-            _this.scene.remove(ref.geometrySplineDotted);
+            _this.scene.remove(ref.lineSpline);
+            _this.scene.remove(ref.lineDotted);
         }
-    }
+    };
 
     for(var j = 0; j< _this.next.length; j++){
         (function(k){
             update(_this.next[k]);
         })(j);
-    } 
+    }
 
     _this.scene.remove(_this.marker);
     _this.scene.remove(_this.labelSprite);
