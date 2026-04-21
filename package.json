@@ -4,16 +4,14 @@
   "description": "encom-globe",
   "main": "src/Globe.js",
   "devDependencies": {
-    "minimist": "0.0.8",
-    "grunt": "~0.4.2",
-    "grunt-contrib-watch": "~0.5.3",
-    "grunt-shell": "~0.6.4",
-    "browserify": "~3.41.0",
-    "grunt-browserify": "~2.0.7",
-    "pngjs": "~0.4.0",
-    "grunt-contrib-uglify": "~0.4.0"
+    "minimist": "^1.2.8",
+    "pngjs": "^7.0.0",
+    "vite": "^6.3.2"
   },
   "scripts": {
+    "build": "vite build && vite build --config vite.min.config.js",
+    "dev": "vite build --watch",
+    "buildgrid": "node bin/buildgrid -r 500 -o grid.js -m resources/equirectangle_projection.png",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -26,8 +24,7 @@
     "hexasphere.js": "*",
     "quadtree2": "~0.5.3",
     "vec2": "~1.5.0",
-    "three": "~0.66.2",
-    "pusher.color": "~0.2.4",
-    "tween.js": "~0.13.0"
+    "three": "^0.184.0",
+    "@tweenjs/tween.js": "^25.0.0"
   }
 }

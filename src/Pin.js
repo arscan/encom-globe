@@ -1,5 +1,5 @@
 var THREE = require('three'),
-    TWEEN = require('tween.js'),
+    TWEEN = require('@tweenjs/tween.js'),
     utils = require('./utils');
 
 
@@ -64,7 +64,6 @@ var Pin = function(lat, lon, text, altitude, scene, smokeProvider, _opts){
 
     /* the line */
 
-    this.lineGeometry = new THREE.Geometry();
     lineMaterial = new THREE.LineBasicMaterial({
         color: opts.lineColor,
         linewidth: opts.lineWidth
@@ -72,8 +71,10 @@ var Pin = function(lat, lon, text, altitude, scene, smokeProvider, _opts){
 
     point = utils.mapPoint(lat,lon);
 
-    this.lineGeometry.vertices.push(new THREE.Vector3(point.x, point.y, point.z));
-    this.lineGeometry.vertices.push(new THREE.Vector3(point.x, point.y, point.z));
+    this.lineGeometry = new THREE.BufferGeometry();
+    this._linePosAttr = new THREE.BufferAttribute(
+        new Float32Array([point.x, point.y, point.z, point.x, point.y, point.z]), 3);
+    this.lineGeometry.setAttribute('position', this._linePosAttr);
     this.line = new THREE.Line(this.lineGeometry, lineMaterial);
 
     /* the label */
@@ -84,14 +85,13 @@ var Pin = function(lat, lon, text, altitude, scene, smokeProvider, _opts){
 
     labelMaterial = new THREE.SpriteMaterial({
        map : labelTexture,
-       useScreenCoordinates: false,
        opacity:0,
        depthTest: true,
        fog: true
     });
 
    this.labelSprite = new THREE.Sprite(labelMaterial);
-   this.labelSprite.position = {x: point.x*altitude*1.1, y: point.y*altitude + (point.y < 0 ? -15 : 30), z: point.z*altitude*1.1};
+   this.labelSprite.position.set(point.x*altitude*1.1, point.y*altitude + (point.y < 0 ? -15 : 30), point.z*altitude*1.1);
    this.labelSprite.scale.set(labelCanvas.width, labelCanvas.height);
 
    /* the top */
@@ -113,16 +113,16 @@ var Pin = function(lat, lon, text, altitude, scene, smokeProvider, _opts){
    /* intro animations */
 
    if(opts.showTop || opts.showLabel){
-       new TWEEN.Tween( {opacity: 0})
+       new TWEEN.Tween( {opacity: 0}, true)
            .to( {opacity: 1}, 500 )
-           .onUpdate(function(){
+           .onUpdate(function(o){
                if(_this.topVisible){
-                   topMaterial.opacity = this.opacity;
+                   topMaterial.opacity = o.opacity;
                } else {
                    topMaterial.opacity = 0;
                }
                if(_this.labelVisible){
-                   labelMaterial.opacity = this.opacity;
+                   labelMaterial.opacity = o.opacity;
                } else {
                    labelMaterial.opacity = 0;
                }
@@ -131,14 +131,12 @@ var Pin = function(lat, lon, text, altitude, scene, smokeProvider, _opts){
    }
 
 
-   new TWEEN.Tween(point)
+   new TWEEN.Tween(point, true)
    .to( {x: point.x*altitude, y: point.y*altitude, z: point.z*altitude}, 1500 )
    .easing( TWEEN.Easing.Elastic.Out )
-   .onUpdate(function(){
-       _this.lineGeometry.vertices[1].x = this.x;
-       _this.lineGeometry.vertices[1].y = this.y;
-       _this.lineGeometry.vertices[1].z = this.z;
-       _this.lineGeometry.verticesNeedUpdate = true;
+   .onUpdate(function(o){
+       _this._linePosAttr.setXYZ(1, o.x, o.y, o.z);
+       _this._linePosAttr.needsUpdate = true;
    }).start();
 
     /* add to scene */
@@ -157,23 +155,21 @@ Pin.prototype.changeAltitude = function(altitude){
     var point = utils.mapPoint(this.lat, this.lon);
     var _this = this; // arghhhh
 
-   new TWEEN.Tween({altitude: this.altitude})
+   new TWEEN.Tween({altitude: this.altitude}, true)
    .to( {altitude: altitude}, 1500 )
    .easing( TWEEN.Easing.Elastic.Out )
-   .onUpdate(function(){
+   .onUpdate(function(o){
        if(_this.smokeVisible){
-           _this.smokeProvider.changeAltitude(this.altitude, _this.smokeId);
+           _this.smokeProvider.changeAltitude(o.altitude, _this.smokeId);
        }
        if(_this.topVisible){
-           _this.topSprite.position.set(point.x * this.altitude, point.y * this.altitude, point.z * this.altitude);
+           _this.topSprite.position.set(point.x * o.altitude, point.y * o.altitude, point.z * o.altitude);
        }
        if(_this.labelVisible){
-           _this.labelSprite.position = {x: point.x*this.altitude*1.1, y: point.y*this.altitude + (point.y < 0 ? -15 : 30), z: point.z*this.altitude*1.1};
+           _this.labelSprite.position.set(point.x*o.altitude*1.1, point.y*o.altitude + (point.y < 0 ? -15 : 30), point.z*o.altitude*1.1);
        }
-       _this.lineGeometry.vertices[1].x = point.x * this.altitude;
-       _this.lineGeometry.vertices[1].y = point.y * this.altitude;
-       _this.lineGeometry.vertices[1].z = point.z * this.altitude;
-       _this.lineGeometry.verticesNeedUpdate = true;
+       _this._linePosAttr.setXYZ(1, point.x * o.altitude, point.y * o.altitude, point.z * o.altitude);
+       _this._linePosAttr.needsUpdate = true;
 
    })
    .onComplete(function(){

@@ -1,4 +1,4 @@
-var TWEEN = require('tween.js'),
+var TWEEN = require('@tweenjs/tween.js'),
     THREE = require('three'),
     Hexasphere = require('hexasphere.js'),
     Quadtree2 = require('quadtree2'),
@@ -7,7 +7,6 @@ var TWEEN = require('tween.js'),
     Marker = require('./Marker'),
     Satellite = require('./Satellite'),
     SmokeProvider = require('./SmokeProvider'),
-    pusherColor = require('pusher.color'),
     utils = require('./utils');
 
 var latLonToXYZ = function(width, height, lat,lon){
@@ -30,11 +29,12 @@ var addInitialData = function(){
     if(this.data.length == 0){
         return;
     }
+    var next;
     while(this.data.length > 0 && this.firstRunTime + (next = this.data.pop()).when < Date.now()){
         this.addPin(next.lat, next.lng, next.label);
     }
 
-    if(this.firstRunTime + next.when >= Date.now()){
+    if(next && this.firstRunTime + next.when >= Date.now()){
         this.data.push(next);
     }
 };
@@ -87,21 +87,16 @@ var createParticles = function(){
         "}"
     ].join("\n");
 
-    var pointAttributes = {
-        lng: {type: 'f', value: null}
-    };
-
     this.pointUniforms = {
         currentTime: { type: 'f', value: 0.0}
     }
 
     var pointMaterial = new THREE.ShaderMaterial( {
         uniforms:       this.pointUniforms,
-        attributes:     pointAttributes,
         vertexShader:   pointVertexShader,
         fragmentShader: pointFragmentShader,
         transparent:    true,
-        vertexColors: THREE.VertexColors,
+        vertexColors:   true,
         side: THREE.DoubleSide
     });
 
@@ -109,33 +104,23 @@ var createParticles = function(){
 
     var geometry = new THREE.BufferGeometry();
 
-    geometry.addAttribute( 'index', Uint16Array, triangles * 3, 1 );
-    geometry.addAttribute( 'position', Float32Array, triangles * 3, 3 );
-    geometry.addAttribute( 'normal', Float32Array, triangles * 3, 3 );
-    geometry.addAttribute( 'color', Float32Array, triangles * 3, 3 );
-    geometry.addAttribute( 'lng', Float32Array, triangles * 3, 1 );
+    geometry.setAttribute( 'position', new THREE.BufferAttribute( new Float32Array( triangles * 9 ), 3 ) );
+    geometry.setAttribute( 'color',    new THREE.BufferAttribute( new Float32Array( triangles * 9 ), 3 ) );
+    geometry.setAttribute( 'lng',      new THREE.BufferAttribute( new Float32Array( triangles * 3 ), 1 ) );
 
     var lng_values = geometry.attributes.lng.array;
 
-    var baseColorSet = pusherColor(this.baseColor).hueSet();
+    var baseHsl = {};
+    new THREE.Color(this.baseColor).getHSL(baseHsl);
     var myColors = [];
-    for(var i = 0; i< baseColorSet.length; i++){
-        myColors.push(baseColorSet[i].shade(Math.random()/3.0));
-    }
-
-    // break geometry into
-    // chunks of 21,845 triangles (3 unique vertices per triangle)
-    // for indices to fit into 16 bit integer number
-    // floor(2^16 / 3) = 21845
-
-    var chunkSize = 21845;
-
-    var indices = geometry.attributes.index.array;
-
-    for ( var i = 0; i < indices.length; i ++ ) {
-
-        indices[ i ] = i % ( 3 * chunkSize );
-
+    for(var ci = 0; ci < 10; ci++){
+        var c = new THREE.Color();
+        c.setHSL(
+            (baseHsl.h + (ci - 5) * 0.02 + 1) % 1,
+            baseHsl.s,
+            Math.min(1, baseHsl.l + Math.random() / 3.0)
+        );
+        myColors.push(c);
     }
 
     var positions = geometry.attributes.position.array;
@@ -148,8 +133,6 @@ var createParticles = function(){
     var addTriangle = function(k, ax, ay, az, bx, by, bz, cx, cy, cz, lat, lng, color){
         var p = k * 3;
         var i = p * 3;
-        var colorIndex = Math.floor(Math.random()*myColors.length);
-        var colorRGB = myColors[colorIndex].rgb();
 
         lng_values[p] = lng;
         lng_values[p+1] = lng;
@@ -186,10 +169,7 @@ var createParticles = function(){
         var k = i * 4;
 
         var colorIndex = Math.floor(Math.random()*myColors.length);
-        var colorRGB = myColors[colorIndex].rgb();
-        var color = new THREE.Color();
-
-        color.setRGB(colorRGB[0]/255.0, colorRGB[1]/255.0, colorRGB[2]/255.0);
+        var color = myColors[colorIndex];
 
         addTriangle(k, t.b[0].x, t.b[0].y, t.b[0].z, t.b[1].x, t.b[1].y, t.b[1].z, t.b[2].x, t.b[2].y, t.b[2].z, t.lat, t.lon, color);
         addTriangle(k+1, t.b[0].x, t.b[0].y, t.b[0].z, t.b[2].x, t.b[2].y, t.b[2].z, t.b[3].x, t.b[3].y, t.b[3].z, t.lat, t.lon, color);
@@ -201,22 +181,6 @@ var createParticles = function(){
 
     }
 
-    geometry.offsets = [];
-
-    var offsets = triangles / chunkSize;
-
-    for ( var i = 0; i < offsets; i ++ ) {
-
-        var offset = {
-            start: i * chunkSize * 3,
-            index: i * chunkSize * 3,
-            count: Math.min( triangles - ( i * chunkSize ), chunkSize ) * 3
-        };
-
-        geometry.offsets.push( offset );
-
-    }
-
     geometry.computeBoundingSphere();
 
     this.hexGrid = new THREE.Mesh( geometry, pointMaterial );
@@ -225,7 +189,6 @@ var createParticles = function(){
 };
 
 var createIntroLines = function(){
-    var sPoint;
     var introLinesMaterial = new THREE.LineBasicMaterial({
         color: this.introLinesColor,
         transparent: true,
@@ -234,8 +197,6 @@ var createIntroLines = function(){
     });
 
     for(var i = 0; i<this.introLinesCount; i++){
-        var geometry = new THREE.Geometry();
-
         var lat = Math.random()*180 + 90;
         var lon =  Math.random()*5;
         var lenBase = 4 + Math.floor(Math.random()*5);
@@ -245,15 +206,17 @@ var createIntroLines = function(){
             lenBase = 3 + Math.floor(Math.random()*3);
         }
 
+        var linePositions = new Float32Array(lenBase * 3);
         for(var j = 0; j< lenBase; j++){
             var thisPoint = utils.mapPoint(lat, lon - j * 5);
-            sPoint = new THREE.Vector3(thisPoint.x*this.introLinesAltitude, thisPoint.y*this.introLinesAltitude, thisPoint.z*this.introLinesAltitude);
-
-            geometry.vertices.push(sPoint);  
+            linePositions[j*3]   = thisPoint.x * this.introLinesAltitude;
+            linePositions[j*3+1] = thisPoint.y * this.introLinesAltitude;
+            linePositions[j*3+2] = thisPoint.z * this.introLinesAltitude;
         }
 
+        var geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
         this.introLines.add(new THREE.Line(geometry, introLinesMaterial));
-
     }
     this.scene.add(this.introLines);
 };
@@ -318,9 +281,6 @@ function Globe(width, height, opts){
 
     this.renderer = new THREE.WebGLRenderer( { antialias: true } );
     this.renderer.setSize( this.width, this.height);
-
-    this.renderer.gammaInput = true;
-    this.renderer.gammaOutput = true;
 
     this.domElement = this.renderer.domElement;
 
